@@ -2,7 +2,8 @@
   var parts = [
     '/module-parts/01-agent-launch/entry-card.html',
     '/module-parts/02-avatar/entry-card.html',
-    '/module-parts/03-social/entry-card.html'
+    '/module-parts/03-social/entry-card.html',
+    '/module-parts/04-about/entry-card.html'
   ];
 
   function ensureStyles() {

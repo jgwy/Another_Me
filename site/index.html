@@ -130,7 +130,7 @@
     <script>
       (function removeStoryModule() {
         function clean() {
-          document.querySelectorAll('a[href="/about"], a[href$="/about"]').forEach(function (node) { node.remove(); });
+          document.querySelectorAll('a[href="/about"]').forEach(function (node) { node.remove(); });
           document.querySelectorAll('button').forEach(function (node) {
             if ((node.textContent || '').trim() === 'Our Story') node.remove();
           });
