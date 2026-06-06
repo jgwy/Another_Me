@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Agent {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  ownerLabel  String
+  category    String
+  persona     String
+  skills      String[]
+  rules       String[]
+  modelConfig Json     @default("{}")
+  maxRounds   Int      @default(6)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  runsAsA ConversationRun[] @relation("RunAgentA")
+  runsAsB ConversationRun[] @relation("RunAgentB")
+  messages ConversationMessage[]
+}
+
+model Scenario {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  description     String
+  prompt          String
+  closingPrompt   String
+  suggestedTopics String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  runs ConversationRun[]
+}
+
+model ConversationRun {
+  id                 String   @id @default(cuid())
+  topic              String
+  requestedMaxRounds Int
+  effectiveMaxRounds Int
+  matchScore         Int
+  matchReasons       String[]
+  matchRisks         String[]
+  provider           String
+  status             String   @default("completed")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  agentAId   String
+  agentA     Agent    @relation("RunAgentA", fields: [agentAId], references: [id])
+  agentBId   String
+  agentB     Agent    @relation("RunAgentB", fields: [agentBId], references: [id])
+  scenarioId String
+  scenario   Scenario @relation(fields: [scenarioId], references: [id])
+
+  messages ConversationMessage[]
+  report   ConversationReport?
+}
+
+model ConversationMessage {
+  id        String   @id @default(cuid())
+  turnIndex Int
+  content   String
+  createdAt DateTime @default(now())
+
+  runId          String
+  run            ConversationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  speakerAgentId String
+  speakerAgent   Agent           @relation(fields: [speakerAgentId], references: [id])
+}
+
+model ConversationReport {
+  id                 String   @id @default(cuid())
+  summary            String
+  matchScore         Int
+  sharedInterests    String[]
+  tensions           String[]
+  suggestedNextSteps String[]
+  reusablePrompt     String
+  raw                Json     @default("{}")
+  createdAt          DateTime @default(now())
+
+  runId String          @unique
+  run   ConversationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+}

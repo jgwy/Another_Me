@@ -1,9 +1,18 @@
 {
-  "name": "another-me-mirror",
+  "name": "another-me",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "mirror": "node scripts/serve-local-mirror.mjs"
-  }
+    "mirror": "node scripts/serve-local-mirror.mjs",
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @another-me/api db:generate",
+    "db:migrate": "pnpm --filter @another-me/api db:migrate",
+    "db:push": "pnpm --filter @another-me/api db:push",
+    "db:seed": "pnpm --filter @another-me/api db:seed"
+  },
+  "packageManager": "pnpm@11.5.2"
 }

@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: another_me
+      POSTGRES_PASSWORD: another_me
+      POSTGRES_DB: another_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - another_me_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U another_me -d another_me"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://another_me:another_me@postgres:5432/another_me
+      API_PORT: 4000
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      MAX_CONVERSATION_ROUNDS: ${MAX_CONVERSATION_ROUNDS:-6}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "pnpm --filter @another-me/api db:push && pnpm --filter @another-me/api db:seed && pnpm --filter @another-me/api dev"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:4000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  another_me_postgres:
