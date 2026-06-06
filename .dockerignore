@@ -1,0 +1,17 @@
+# 收敛创空间根 Dockerfile 的构建上下文（仅影响 `docker build .`，不影响 compose）。
+.git
+.gitignore
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.ruff_cache
+**/.pytest_cache
+**/.vite
+frontend/dist
+**/.DS_Store
+.env
+.env.*
+**/*.log
+docs

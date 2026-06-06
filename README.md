@@ -304,6 +304,62 @@ npm run dev                               # http://localhost:5173
 
 ---
 
+## Deploy path C — ModelScope 创空间 (single-container demo)
+
+A **zero-source-change** packaging that runs the whole stack as **one container on a
+single public port `7860`** — for publishing a public demo on
+[ModelScope Studios (Docker)](https://www.modelscope.cn/). Inside the container,
+`supervisord` runs an embedded **Postgres** (data persisted under `/mnt/workspace`),
+the **backend**, the **sandbox-runner**, and **nginx** (serves the built frontend and
+reverse-proxies `/api` → backend with SSE buffering disabled). Your local/production
+setup keeps using `docker-compose.yml`; this path touches neither it nor any app source.
+
+Added files only (no application code changed):
+
+```text
+Dockerfile                          # Studio entry (root — Studio builds this)
+.dockerignore
+deploy/modelscope/nginx.conf        # :7860 → static (SPA) + /api proxy (+ SSE)
+deploy/modelscope/supervisord.conf  # postgres + sandbox + backend + nginx
+deploy/modelscope/run-postgres.sh   # initdb → /mnt/workspace/pgdata, then serve
+deploy/modelscope/run-backend.sh    # wait-for-pg → alembic → seed → uvicorn
+```
+
+### Try it locally first
+
+```bash
+docker build -t another-me-studio .
+docker run --rm -p 7860:7860 -v "$PWD/.mnt-workspace:/mnt/workspace" another-me-studio
+# → http://localhost:7860   (key-free: ships with LLM_PROVIDER=mock)
+```
+
+### Publish on ModelScope
+
+1. Create a **Docker** Studio (requires real-name / Aliyun-account binding) and clone it.
+2. Put this repo's contents in — the **root `Dockerfile`** is what Studio builds.
+3. Push to the **master** branch, then **Settings → 上线**; use **查看日志** to follow
+   the build + runtime logs.
+4. *(Optional, real LLM)* In **Settings → 环境变量 (runtime)** set `LLM_PROVIDER=openai`,
+   `OPENAI_BASE_URL=https://api.gpugeek.com/v1`, `OPENAI_MODEL=DeepSeek-V4-Pro`,
+   `OPENAI_API_KEY=…`, and a strong `JWT_SECRET`. All are read at runtime — no rebuild.
+
+### Notes & limits
+
+- **Single port / single instance.** Studio exposes only `7860` (port `8080` is reserved
+  by the platform — unused here). The live SSE bus is in-process, so **don't scale to
+  multiple replicas/workers** (it would split the fan-out).
+- **Persistence.** Postgres data lives in `/mnt/workspace/pgdata` — survives restarts,
+  but is **lost if the Studio is renamed/transferred**. Fine for a demo; point
+  `DATABASE_URL` at an external managed DB if you need durability.
+- **Sandbox isolation is weaker here.** The sandbox-runner shares the container (no
+  internal-only network like Compose). Key-free `mock` runs fixed, harmless code; if you
+  switch to a real LLM, treat agent-run code as untrusted.
+- **Auth header.** The frontend sends its JWT via the `Authorization` header; the SSE
+  spectate stream uses a `token` query param instead. If the platform gateway ever
+  interferes with `Authorization` and login misbehaves, that's the first place to look.
+
+---
+
 ## Environment variables
 
 Full reference (see [`.env.example`](.env.example) for the copy-paste template):
