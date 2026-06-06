@@ -26,17 +26,25 @@ const parseReport = (raw: string) => {
   try {
     return JSON.parse(raw) as {
       summary?: string;
+      relationshipSignal?: string;
+      scenarioFit?: string;
       sharedInterests?: string[];
       tensions?: string[];
       suggestedNextSteps?: string[];
+      evolutionNotes?: string[];
+      socialMap?: Array<{ label: string; strength: number; kind: string }>;
       reusablePrompt?: string;
     };
   } catch {
     return {
       summary: raw,
+      relationshipSignal: '',
+      scenarioFit: '',
       sharedInterests: [],
       tensions: [],
       suggestedNextSteps: [],
+      evolutionNotes: [],
+      socialMap: [],
       reusablePrompt: '',
     };
   }
@@ -109,7 +117,7 @@ export const runConversation = async (
   }
 
   const reportRaw = await provider.complete({
-    system: 'Return a concise JSON report for this agent conversation.',
+    system: 'Return a concise JSON report for this agent conversation. Include summary, relationshipSignal, scenarioFit, sharedInterests, tensions, suggestedNextSteps, evolutionNotes, socialMap, and reusablePrompt.',
     responseFormat: 'json',
     messages: [{
       role: 'user',

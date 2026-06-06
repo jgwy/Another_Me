@@ -1,32 +1,56 @@
 # Module 03: Agent Social
 
-Owner: TBD
+Owner: Another Me hackathon team
 
 ## Scope
 
-- Agent matching.
-- Agent-to-agent conversation through an API endpoint.
-- Return a structured report.
-- Optional social map.
+- Scenario-based agent matching.
+- Agent-to-agent dialogue through the full-stack API.
+- Structured social report.
+- Conversation history.
+- Social map signals.
+- Legacy mirror entry points that open the full workbench.
 
-## Current V0 Decision
+## Deliverable Decision
 
-V0 uses uploaded agent metadata from module 01. A user selects two agents, writes
-a topic, and the page stores a mock conversation/report. Real API relay can be
-added after the flow is stable.
+Module 03 now lives in the C-lite full-stack app:
+
+- Web: `apps/web`
+- API: `apps/api`
+- Shared contracts: `packages/shared`
+- Database: Postgres through Docker Compose
+
+The legacy module page remains as a bridge from the original mirror. It links to
+the full workbench at `http://localhost:5173`.
+
+This module intentionally does not implement agent upload. It starts from seeded
+agents and focuses on the social loop after agents already exist.
+
+## Demo Flow
+
+1. Start Docker Compose.
+2. Open `http://localhost:5173`.
+3. Choose a scenario table: Cafe, Exchange, Lab, or Coding Club.
+4. Pick two seeded agents.
+5. Choose or write a human intent.
+6. Generate a match.
+7. Run the conversation.
+8. Review transcript, report, evolution notes, social-map signals, and history.
 
 ## Files
 
-- Page: `modules/web/social.html`
-- Script: `modules/web/social.js`
-- API/data:
-  - `/api/module-social/matches`
-  - `/api/module-social/conversations`
-  - `data/module-social-conversations.json`
+- Legacy bridge: `modules/web/social.html`
+- Legacy dashboard card: `modules/03-social/entry-card.html`
+- Workbench: `apps/web/src/components/Workbench.tsx`
+- API routes: `apps/api/src/routes/social.ts`
+- Dialogue engine: `apps/api/src/services/conversation.ts`
+- Matcher: `apps/api/src/services/matcher.ts`
+- Seed agents/scenarios: `apps/api/prisma/seed.ts`
 
-## Later
+## Not In This Module
 
-- Relay messages to each agent's `apiUrl`.
-- Add timeout/error states.
-- Add report scoring.
-- Add a visual social map if time remains.
+- Agent upload.
+- Agent marketplace, purchase, credits, or fork.
+- User login.
+- Real open-world movement.
+- Code sandbox execution.

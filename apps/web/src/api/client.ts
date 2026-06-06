@@ -32,6 +32,7 @@ export type Agent = {
   category: string;
   persona: string;
   skills: string[];
+  rules: string[];
   maxRounds: number;
 };
 
@@ -65,6 +66,7 @@ export type ConversationReport = {
   tensions: string[];
   suggestedNextSteps: string[];
   reusablePrompt: string;
+  raw?: Record<string, unknown>;
 };
 
 export type ConversationRun = {

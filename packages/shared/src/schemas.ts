@@ -63,6 +63,14 @@ export const conversationReportSchema = z.object({
   tensions: z.array(z.string()),
   suggestedNextSteps: z.array(z.string()),
   reusablePrompt: z.string(),
+  relationshipSignal: z.string().optional(),
+  scenarioFit: z.string().optional(),
+  evolutionNotes: z.array(z.string()).optional(),
+  socialMap: z.array(z.object({
+    label: z.string(),
+    strength: z.number().int().min(0).max(100),
+    kind: z.string(),
+  })).optional(),
 });
 
 export type AgentDto = z.infer<typeof agentSchema>;
