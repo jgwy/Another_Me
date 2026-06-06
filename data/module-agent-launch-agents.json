@@ -1,5 +1,20 @@
 [
   {
+    "id": "915288ae-9c56-4818-b0a1-3d3f7f0fd212",
+    "name": "11 的化身 Agent",
+    "owner": "11",
+    "tagline": "11 的个人化身",
+    "description": "身份：11\n\n擅长能力：11\n\n性格与表达风格：11\n\n使用方式：11\n\n人格问卷补充：\n熟人和陌生人面前的差异：</label>\n                <label>你最容易被什么事情打动？ <input name=\"最容易被什么打动\" placeholder=\"例如：真诚、长期坚持、把复杂问题讲清楚。\" /></label>\n                <label>你最不喜欢别人怎样和你相处？ <input name=\"不喜欢的相处方式\" placeholder=\"例如：一直催、不讲清上下文、只提要求不给反馈。\" /></label>\n              </fieldset>\n\n              <fieldset>\n                <legend>生活习惯</legend>\n                <label>你一天里最清醒的时间段 <input name=\"最清醒的时间段\" placeholder=\"例如：深夜、上午、下午喝咖啡后。\" /></label>\n                <label>你放松时通常会做什么？ <input name=\"放松方式\" placeholder=\"例如：刷视频、散步、听播客、打游戏、和朋友聊天。\" /></label>\n                <label>你的生活节奏更像哪一种？\n                  <select name=\"生活节奏\">\n                    <option value=\"\">暂不填写</option>\n                    <option>计划型，会提前安排</option>\n                    <option>冲刺型，临近 deadline 爆发</option>\n                    <option>灵感型，有状态时效率很高</option>\n                    <option>稳定型，每天推进一点</option>\n                  </select>\n                </label>\n                <label>有哪些小习惯能代表你？ <textarea name=\"代表性小习惯\" rows=\"3\" placeholder=\"例如：喜欢列 checklist，经常说先跑起来，习惯先找参考。\" /></label>\n              </fieldset>\n\n              <fieldset>\n                <legend>说话习惯</legend>\n                <label>你平时说话更像",
+    "chatUrl": "https://example.com/avatar-agent/11",
+    "apiUrl": "",
+    "demoVideoUrl": "https://agenthansa.com/dashboard",
+    "category": "个人化身",
+    "created_at": "2026-06-06T08:13:06.202Z",
+    "repoUrl": "",
+    "eventName": "Avatar Agent Builder",
+    "status": "submitted"
+  },
+  {
     "id": "4df854d5-b505-435a-8dd5-1218ec3e39bf",
     "name": "Smoke Agent",
     "owner": "Smoke Team",
