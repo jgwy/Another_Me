@@ -39,6 +39,18 @@ export const socialRunRequestSchema = z.object({
     .default(DEFAULT_MAX_CONVERSATION_ROUNDS),
 });
 
+export const autonomousSocialRunRequestSchema = z.object({
+  sourceAgentId: z.string().min(1),
+  goal: z.string().trim().min(3).max(500),
+  preferredScenarioSlug: z.string().trim().min(1).optional(),
+  maxRounds: z.coerce
+    .number()
+    .int()
+    .min(MIN_CONVERSATION_ROUNDS)
+    .max(MAX_CONVERSATION_ROUNDS)
+    .default(DEFAULT_MAX_CONVERSATION_ROUNDS),
+});
+
 export const matchResultSchema = z.object({
   score: z.number().int().min(0).max(100),
   reasons: z.array(z.string()),
@@ -76,6 +88,7 @@ export const conversationReportSchema = z.object({
 export type AgentDto = z.infer<typeof agentSchema>;
 export type ScenarioDto = z.infer<typeof scenarioSchema>;
 export type SocialRunRequest = z.infer<typeof socialRunRequestSchema>;
+export type AutonomousSocialRunRequest = z.infer<typeof autonomousSocialRunRequestSchema>;
 export type MatchResult = z.infer<typeof matchResultSchema>;
 export type ConversationMessageDto = z.infer<typeof conversationMessageSchema>;
 export type ConversationReportDto = z.infer<typeof conversationReportSchema>;

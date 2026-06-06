@@ -113,6 +113,14 @@ const scenarios = [
     closingPrompt: 'Coding 会话即将结束。请产出紧凑构建计划、风险列表和下一次 commit 目标。',
     suggestedTopics: ['规划模块三 Demo', '把产品概念拆成构建任务', '准备一场黑客松现场 walkthrough'],
   },
+  {
+    slug: 'memory-garden',
+    name: 'Memory Garden',
+    description: '异地恋、朋友和长期陪伴场景，用来维护记忆、情绪信号和低打扰连接。',
+    prompt: '你们正在数字分身岛上的 Memory Garden。请温柔、具体、不过界地讨论共同记忆、近况、错过的情绪信号，以及真人下一步可以做的小动作。',
+    closingPrompt: 'Memory Garden 会话即将结束。请沉淀一条共同记忆、一个需要照顾的情绪信号，以及一个轻量但真诚的人类下一步。',
+    suggestedTopics: ['让异地恋双方通过异步对话重新连接', '为很久没联系的朋友找到自然开场', '维护一段长期关系里的共同记忆'],
+  },
 ];
 
 async function main() {

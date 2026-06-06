@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { socialRunRequestSchema } from '@another-me/shared';
+import { autonomousSocialRunRequestSchema, socialRunRequestSchema } from '@another-me/shared';
 import { getProvider } from '../llm/provider';
 import { prisma } from '../prisma';
+import { planAutonomousSocialRun, shapeSocialReport } from '../services/autonomousSocial';
 import { runConversation } from '../services/conversation';
 import { matchAgents } from '../services/matcher';
 
@@ -38,6 +39,70 @@ export const registerSocialRoutes = async (app: FastifyInstance) => {
     } catch (error) {
       const message = error instanceof Error ? error.message : '对话运行失败。';
       return reply.code(400).send({ error: message, code: 'CONVERSATION_FAILED' });
+    }
+  });
+
+  app.post('/autonomous-runs', async (request, reply) => {
+    try {
+      const body = autonomousSocialRunRequestSchema.parse(request.body);
+      const [agents, scenarios] = await Promise.all([
+        prisma.agent.findMany({ orderBy: { name: 'asc' } }),
+        prisma.scenario.findMany({ orderBy: { name: 'asc' } }),
+      ]);
+      const plan = planAutonomousSocialRun({
+        sourceAgentId: body.sourceAgentId,
+        goal: body.goal,
+        preferredScenarioSlug: body.preferredScenarioSlug,
+        maxRounds: body.maxRounds,
+        agents,
+        scenarios,
+      });
+      const conversation = await runConversation({
+        agentAId: plan.sourceAgent.id,
+        agentBId: plan.targetAgent.id,
+        scenarioId: plan.scenario.id,
+        topic: plan.topic,
+        maxRounds: plan.maxRounds,
+      }, getProvider());
+      const structuredReport = shapeSocialReport({
+        sourceAgentName: plan.sourceAgent.name,
+        targetAgentName: plan.targetAgent.name,
+        scenarioName: plan.scenario.name,
+        matchScore: conversation.report.matchScore,
+        summary: conversation.report.summary,
+        sharedInterests: conversation.report.sharedInterests,
+        tensions: conversation.report.tensions,
+        suggestedNextSteps: conversation.report.suggestedNextSteps,
+      });
+      const existingRaw = typeof conversation.report.raw === 'object' && conversation.report.raw !== null
+        ? conversation.report.raw as Record<string, unknown>
+        : {};
+      const report = await prisma.conversationReport.update({
+        where: { id: conversation.report.id },
+        data: {
+          raw: {
+            ...existingRaw,
+            structuredSocialReport: structuredReport,
+            autonomousPlan: {
+              sourceAgentId: plan.sourceAgent.id,
+              targetAgentId: plan.targetAgent.id,
+              scenarioId: plan.scenario.id,
+              reasons: plan.reasons,
+              risks: plan.risks,
+              playbackSteps: plan.playbackSteps,
+            },
+          },
+        },
+      });
+
+      return {
+        plan,
+        conversation: { ...conversation, report },
+        structuredReport,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '自主社交运行失败。';
+      return reply.code(400).send({ error: message, code: 'AUTONOMOUS_RUN_FAILED' });
     }
   });
 
