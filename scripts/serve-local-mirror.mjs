@@ -4,12 +4,16 @@ import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
+import { spawn } from 'node:child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..', 'site')
 const modulePartsRoot = path.resolve(__dirname, '..', 'modules')
 const modulesRoot = path.resolve(__dirname, '..', 'modules', 'web')
 const dataDir = path.resolve(__dirname, '..', 'data')
+const vibeResearchRoot = '/gpfs/users/liujinxiu/research/viberesearch'
+const vibeResearchPython = path.join(vibeResearchRoot, '.venv', 'bin', 'python')
+const globalEnvFile = '/gpfs/users/liujinxiu/.env'
 const agentsFile = path.join(dataDir, 'uploaded-agents.json')
 const moduleAgentsFile = path.join(dataDir, 'module-agent-launch-agents.json')
 const avatarProfilesFile = path.join(dataDir, 'module-avatar-profiles.json')
@@ -45,6 +49,132 @@ const readJsonBody = async (req) => {
 }
 
 const text = (value, max = 500) => String(value || '').trim().slice(0, max)
+
+const readDotEnv = async (file) => {
+  try {
+    const raw = await fs.readFile(file, 'utf8')
+    return Object.fromEntries(raw.split(/\r?\n/).map((line) => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) return null
+      const index = trimmed.indexOf('=')
+      const key = trimmed.slice(0, index).trim()
+      const value = trimmed.slice(index + 1).trim().replace(/^["']|["']$/g, '')
+      return [key, value]
+    }).filter(Boolean))
+  } catch {
+    return {}
+  }
+}
+
+const buildAgentRuntimePrompt = (message, agent) => {
+  if (!agent) return message
+  const skill = text(agent.skillPrompt || agent.description, 12000)
+  return [
+    'You are running inside Another Me.',
+    'Load the selected skill/persona behavior and expose it through the chat UI.',
+    'Follow the uploaded skill/persona below. Do not mention implementation details unless the user asks.',
+    '',
+    '[AGENT_PROFILE]',
+    `Name: ${agent.name || 'Uploaded Agent'}`,
+    `Owner: ${agent.owner || 'Unknown'}`,
+    `Category: ${agent.category || 'General'}`,
+    `Tagline: ${agent.tagline || ''}`,
+    '',
+    '[AGENT_SKILL]',
+    skill || 'No explicit skill text was provided yet. Behave as a concise, helpful Another Me agent.',
+    '[/AGENT_SKILL]',
+    '',
+    '[USER_MESSAGE]',
+    message,
+    '[/USER_MESSAGE]',
+  ].join('\n')
+}
+
+const runEvoScientistChat = async (message, agent = null) => {
+  const envFromFile = await readDotEnv(globalEnvFile)
+  const pythonBin = await fs.access(vibeResearchPython).then(() => vibeResearchPython).catch(() => 'python')
+  const model = envFromFile.OPENAI_MODEL || process.env.OPENAI_MODEL || 'gpt-5'
+  const runtimePrompt = buildAgentRuntimePrompt(message, agent)
+  const env = {
+    ...process.env,
+    ...envFromFile,
+    EVOSCIENTIST_UI_BACKEND: 'cli',
+    PYTHONPATH: [vibeResearchRoot, process.env.PYTHONPATH].filter(Boolean).join(':'),
+    FORCE_COLOR: '0',
+    NO_COLOR: '1',
+  }
+  const args = [
+    '-m',
+    'EvoScientist',
+    '--prompt',
+    runtimePrompt,
+    '--ui',
+    'cli',
+    '--no-thinking',
+    '--auto-approve',
+    '--workdir',
+    vibeResearchRoot,
+  ]
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(pythonBin, args, {
+      cwd: vibeResearchRoot,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let stdout = ''
+    let stderr = ''
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM')
+      reject(new Error('聊天助手调用超时。请缩短问题或检查模型配置。'))
+    }, 120000)
+    child.stdout.on('data', (chunk) => { stdout += chunk.toString('utf8') })
+    child.stderr.on('data', (chunk) => { stderr += chunk.toString('utf8') })
+    child.on('error', (error) => {
+      clearTimeout(timeout)
+      reject(error)
+    })
+    child.on('close', (code) => {
+      clearTimeout(timeout)
+      const output = `${stdout}\n${stderr}`.trim()
+      if (code === 0) {
+        resolve({ output: extractAssistantReply(output), code })
+        return
+      }
+      reject(new Error(sanitizeAssistantOutput(output || `Chat assistant exited with code ${code}`)))
+    })
+  })
+}
+
+const sanitizeAssistantOutput = (value) => String(value || '')
+  .replaceAll('EvoScientist', 'Another Me')
+  .replaceAll('EvoSci', 'Another Me')
+  .replaceAll('evosci', 'Another Me')
+  .replaceAll('viberesearch', 'Another Me')
+  .replaceAll(vibeResearchRoot, 'Another Me')
+
+const extractAssistantReply = (raw) => {
+  const normalized = sanitizeAssistantOutput(raw).replace(/\r/g, '')
+  const lines = normalized.split('\n')
+  const separatorIndexes = lines
+    .map((line, index) => (/^[─━-]{20,}$/.test(line.trim()) ? index : -1))
+    .filter((index) => index >= 0)
+  let start = separatorIndexes.length >= 2 ? separatorIndexes[1] + 1 : 0
+  while (start < lines.length && /^(Thread:|Workspace:|\s*$)/.test(lines[start])) start += 1
+  const body = []
+  for (let index = start; index < lines.length; index += 1) {
+    const line = lines[index]
+    if (/^\s*\[Usage:/.test(line)) break
+    if (/^npm error\b/.test(line)) break
+    if (/^╭─/.test(line)) break
+    if (/^\[Error\]/.test(line)) break
+    body.push(line)
+  }
+  const cleaned = body.join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return cleaned || normalized
+}
 
 const defaultUploadedAgents = [
   {
@@ -108,6 +238,8 @@ const makeModuleAgent = (body) => ({
   ...makeUploadedAgent(body),
   repoUrl: text(body.repoUrl, 400),
   eventName: text(body.eventName, 120),
+  skillPrompt: text(body.skillPrompt, 12000),
+  runtimeType: text(body.runtimeType, 80) || 'skill-runtime',
   status: text(body.status, 80) || 'submitted',
 })
 
@@ -178,6 +310,25 @@ const mockApi = async (req, res, requestUrl) => {
   }
 
   const pathName = requestUrl.pathname
+  if (pathName === '/api/module-agent-launch/chat' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req)
+      const message = text(body.message, 8000)
+      if (!message) return json(res, { error: 'message is required' }, 400)
+      const agentId = text(body.agentId, 120)
+      const agents = agentId ? await loadJsonFile(moduleAgentsFile, []) : []
+      const agent = agentId ? agents.find((item) => item.id === agentId) : null
+      if (agentId && !agent) return json(res, { error: 'agent not found' }, 404)
+      const result = await runEvoScientistChat(message, agent)
+      return json(res, {
+        output: result.output,
+      })
+    } catch (error) {
+      return json(res, {
+        error: sanitizeAssistantOutput(error instanceof Error ? error.message : '聊天助手调用失败'),
+      }, 500)
+    }
+  }
   if (pathName === '/api/module-agent-launch/agents' && req.method === 'GET') {
     const fallback = defaultUploadedAgents.map((agent) => ({ ...agent, repoUrl: '', eventName: 'Local Hackathon', status: 'demo' }))
     return json(res, await loadJsonFile(moduleAgentsFile, fallback))
@@ -301,6 +452,18 @@ const server = http.createServer(async (req, res) => {
     }
     const ext = path.extname(target)
     res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' })
+    createReadStream(target).pipe(res)
+    return
+  }
+
+  if (decodedPath === '/modules/agent-launch') {
+    const target = path.join(modulePartsRoot, '01-agent-launch', 'page.html')
+    if (!(await exists(target))) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('Not found')
+      return
+    }
+    res.writeHead(200, { 'Content-Type': mime['.html'] })
     createReadStream(target).pipe(res)
     return
   }
