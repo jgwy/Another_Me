@@ -14,9 +14,9 @@ import { matchAgents } from './matcher';
 const speakerSystem = (agent: Agent, scenario: Scenario, closing: boolean) => [
   scenario.prompt,
   closing ? scenario.closingPrompt : '',
-  `You are ${agent.name}. Persona: ${agent.persona}`,
-  `Skills: ${agent.skills.join(', ')}`,
-  `Rules: ${agent.rules.join('; ')}`,
+  `你是 ${agent.name}。Persona：${agent.persona}`,
+  `Skills：${agent.skills.join(', ')}`,
+  `Rules：${agent.rules.join('; ')}`,
 ].filter(Boolean).join('\n\n');
 
 const transcriptFor = (messages: Array<{ speakerName: string; content: string }>) =>
@@ -59,7 +59,7 @@ export const runConversation = async (
   report: ConversationReport;
 }> => {
   if (request.agentAId === request.agentBId) {
-    throw new Error('Choose two different agents.');
+    throw new Error('请选择两个不同的 Agent。');
   }
 
   const [agentA, agentB, scenario] = await Promise.all([
@@ -69,7 +69,7 @@ export const runConversation = async (
   ]);
 
   if (!agentA || !agentB || !scenario) {
-    throw new Error('Agent or scenario not found.');
+    throw new Error('没有找到对应的 Agent 或 Scenario。');
   }
 
   const match = matchAgents(agentA, agentB, scenario, request.topic, request.maxRounds);
@@ -101,7 +101,7 @@ export const runConversation = async (
       system: speakerSystem(speaker, scenario, closing),
       messages: [{
         role: 'user',
-        content: `Topic: ${request.topic}\n\nConversation so far:\n${transcript || 'No messages yet.'}\n\nSpeak as ${speaker.name}.`,
+        content: `话题：${request.topic}\n\n目前对话：\n${transcript || '还没有消息。'}\n\n请以 ${speaker.name} 的身份发言。`,
       }],
     });
     const message = await prisma.conversationMessage.create({
@@ -117,11 +117,11 @@ export const runConversation = async (
   }
 
   const reportRaw = await provider.complete({
-    system: 'Return a concise JSON report for this agent conversation. Include summary, relationshipSignal, scenarioFit, sharedInterests, tensions, suggestedNextSteps, evolutionNotes, socialMap, and reusablePrompt.',
+    system: '请为这次 Agent 对话返回一份简洁的 JSON 社交报告。必须包含 summary、relationshipSignal、scenarioFit、sharedInterests、tensions、suggestedNextSteps、evolutionNotes、socialMap、reusablePrompt。所有面向用户的内容请使用中文，保留必要英文产品词即可。',
     responseFormat: 'json',
     messages: [{
       role: 'user',
-      content: `Topic: ${request.topic}\nMatch score: ${match.score}\nTranscript:\n${transcriptFor(savedMessages.map((message) => ({
+      content: `话题：${request.topic}\n匹配分数：${match.score}\n对话记录：\n${transcriptFor(savedMessages.map((message) => ({
         speakerName: message.speakerAgent.name,
         content: message.content,
       })))}`,
@@ -132,12 +132,12 @@ export const runConversation = async (
   const report = await prisma.conversationReport.create({
     data: {
       runId: run.id,
-      summary: parsed.summary || 'The agents completed a conversation.',
+      summary: parsed.summary || '两个 Agent 已完成一轮对话。',
       matchScore: match.score,
       sharedInterests: parsed.sharedInterests || [],
       tensions: parsed.tensions || [],
       suggestedNextSteps: parsed.suggestedNextSteps || [],
-      reusablePrompt: parsed.reusablePrompt || `Continue discussing: ${request.topic}`,
+      reusablePrompt: parsed.reusablePrompt || `继续讨论：${request.topic}`,
       raw: parsed,
     },
   });

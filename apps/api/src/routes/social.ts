@@ -15,7 +15,7 @@ export const registerSocialRoutes = async (app: FastifyInstance) => {
   app.post('/matches', async (request, reply) => {
     const body = socialRunRequestSchema.parse(request.body);
     if (body.agentAId === body.agentBId) {
-      return reply.code(400).send({ error: 'Choose two different agents.', code: 'SAME_AGENT' });
+      return reply.code(400).send({ error: '请选择两个不同的 Agent。', code: 'SAME_AGENT' });
     }
 
     const [agentA, agentB, scenario] = await Promise.all([
@@ -25,7 +25,7 @@ export const registerSocialRoutes = async (app: FastifyInstance) => {
     ]);
 
     if (!agentA || !agentB || !scenario) {
-      return reply.code(404).send({ error: 'Agent or scenario not found.', code: 'NOT_FOUND' });
+      return reply.code(404).send({ error: '没有找到对应的 Agent 或 Scenario。', code: 'NOT_FOUND' });
     }
 
     return matchAgents(agentA, agentB, scenario, body.topic, body.maxRounds);
@@ -36,7 +36,7 @@ export const registerSocialRoutes = async (app: FastifyInstance) => {
       const body = socialRunRequestSchema.parse(request.body);
       return await runConversation(body, getProvider());
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Conversation failed.';
+      const message = error instanceof Error ? error.message : '对话运行失败。';
       return reply.code(400).send({ error: message, code: 'CONVERSATION_FAILED' });
     }
   });
@@ -61,7 +61,7 @@ export const registerSocialRoutes = async (app: FastifyInstance) => {
     });
 
     if (!run) {
-      return reply.code(404).send({ error: 'Conversation not found.', code: 'NOT_FOUND' });
+      return reply.code(404).send({ error: '没有找到这条对话记录。', code: 'NOT_FOUND' });
     }
 
     return run;

@@ -35,10 +35,10 @@ type Metric = {
 };
 
 const demoTopics = [
-  'Evaluate Another Me as a hackathon social demo for investors.',
-  'Find whether two humans would enjoy talking about AI coding and music.',
-  'Let a small-town user understand the emotional reality of working in Shanghai.',
-  'Help long-distance partners reconnect while they are asleep in different time zones.',
+  '评估 Another Me 作为黑客松 Agent 社交 Demo 是否能打动投资人。',
+  '判断两个真人是否会因为 AI Coding 和音乐产生共同话题。',
+  '让小县城用户通过 Agent 理解上海打工人的真实生活压力。',
+  '让异地恋双方在时差中通过 Agent 延续陪伴和记忆。',
 ];
 
 const toneClass = {
@@ -75,7 +75,7 @@ export const Workbench = () => {
   const [maxRounds, setMaxRounds] = useState(6);
   const [match, setMatch] = useState<MatchResult | null>(null);
   const [conversation, setConversation] = useState<ConversationResult | ConversationDetail | null>(null);
-  const [status, setStatus] = useState<Status>({ text: 'Loading island social system...', tone: 'neutral' });
+  const [status, setStatus] = useState<Status>({ text: '正在加载 Agent Island 社交系统...', tone: 'neutral' });
   const [busy, setBusy] = useState(false);
 
   const selectedScenario = useMemo(
@@ -92,14 +92,14 @@ export const Workbench = () => {
     })
     : [];
   const metrics: Metric[] = [
-    { label: 'Agents', value: agents.length, Icon: Bot },
-    { label: 'Scenarios', value: scenarios.length, Icon: Compass },
-    { label: 'Saved runs', value: history.length, Icon: History },
-    { label: 'Max turns', value: maxRounds, Icon: Clock3 },
+    { label: 'Agent 数量', value: agents.length, Icon: Bot },
+    { label: 'Scenario 数量', value: scenarios.length, Icon: Compass },
+    { label: '历史对话', value: history.length, Icon: History },
+    { label: '最大轮次', value: maxRounds, Icon: Clock3 },
   ];
 
   const load = async () => {
-    setStatus({ text: 'Loading island social system...', tone: 'neutral' });
+    setStatus({ text: '正在加载 Agent Island 社交系统...', tone: 'neutral' });
     const [health, nextAgents, nextScenarios, nextHistory] = await Promise.all([
       api.health(),
       api.agents(),
@@ -113,24 +113,24 @@ export const Workbench = () => {
     setAgentAId((current) => current || nextAgents[0]?.id || '');
     setAgentBId((current) => current || nextAgents[1]?.id || '');
     setScenarioId((current) => current || nextScenarios[0]?.id || '');
-    setStatus({ text: 'Ready. Pick a table, dispatch two agents, and read the social report.', tone: 'good' });
+    setStatus({ text: '准备好了。选择场景桌、派出两个 Agent，然后读取社交报告。', tone: 'good' });
   };
 
   useEffect(() => {
-    load().catch((error) => setStatus({ text: error instanceof Error ? error.message : 'Load failed.', tone: 'bad' }));
+    load().catch((error) => setStatus({ text: error instanceof Error ? error.message : '加载失败。', tone: 'bad' }));
   }, []);
 
   const requestBody = { agentAId, agentBId, scenarioId, topic, maxRounds };
 
   const generateMatch = async () => {
     setBusy(true);
-    setStatus({ text: 'Scoring fit across scenario, skills, persona, and round limits...', tone: 'neutral' });
+    setStatus({ text: '正在根据 Scenario、Skills、Persona 和轮次限制计算匹配度...', tone: 'neutral' });
     try {
       const result = await api.match(requestBody);
       setMatch(result);
-      setStatus({ text: 'Match ready. Review the reasons, then run the dialogue.', tone: 'good' });
+      setStatus({ text: '匹配完成。先看匹配理由，再运行对话。', tone: 'good' });
     } catch (error) {
-      setStatus({ text: error instanceof Error ? error.message : 'Match failed.', tone: 'bad' });
+      setStatus({ text: error instanceof Error ? error.message : '匹配失败。', tone: 'bad' });
     } finally {
       setBusy(false);
     }
@@ -138,7 +138,7 @@ export const Workbench = () => {
 
   const run = async () => {
     setBusy(true);
-    setStatus({ text: 'Running agent-to-agent dialogue and report generation...', tone: 'neutral' });
+    setStatus({ text: '正在运行 Agent-to-Agent 对话并生成报告...', tone: 'neutral' });
     try {
       const result = await api.converse(requestBody);
       setConversation(result);
@@ -149,9 +149,9 @@ export const Workbench = () => {
         recommendedMaxRounds: result.run.effectiveMaxRounds,
       });
       setHistory(await api.history());
-      setStatus({ text: 'Conversation complete. Report, transcript, and history are saved.', tone: 'good' });
+      setStatus({ text: '对话完成。报告、对话记录和历史记录已保存。', tone: 'good' });
     } catch (error) {
-      setStatus({ text: error instanceof Error ? error.message : 'Conversation failed.', tone: 'bad' });
+      setStatus({ text: error instanceof Error ? error.message : '对话失败。', tone: 'bad' });
     } finally {
       setBusy(false);
     }
@@ -164,21 +164,19 @@ export const Workbench = () => {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#66796e]">Another Me / Module 03 / Agent Island</p>
             <h1 className="mt-2 max-w-4xl text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
-              Send digital doubles into scenario tables and bring back social intelligence.
+              把数字分身派上岛，让 Agent 替你社交并带回可行动的关系洞察。
             </h1>
             <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
-              This deliverable focuses on the post-upload social loop: existing agents enter Cafe, Exchange,
-              Lab, or Coding Club; the system matches them, runs a bounded dialogue, stores the transcript,
-              and returns a report the human can act on.
+              这个交付版聚焦「Agent 已存在之后」的社交流程：Agent 进入 Cafe、Exchange、Lab 或 Coding Club，系统完成匹配、运行有限轮对话、保存记录，并返回真人可以使用的社交报告。
             </p>
           </div>
           <div className="grid gap-2 text-sm sm:grid-cols-2 lg:w-72 lg:grid-cols-1">
             <div className="rounded border border-[#c9c8bd] bg-white p-3">
-              <div className="text-xs uppercase text-stone-500">Provider</div>
+              <div className="text-xs uppercase text-stone-500">模型接口</div>
               <div className="font-semibold">{provider}</div>
             </div>
             <button className="inline-flex items-center justify-center gap-2 rounded bg-[#26362d] px-3 py-3 text-white" onClick={() => load()}>
-              <RefreshCw size={16} /> Refresh Data
+              <RefreshCw size={16} /> 刷新数据
             </button>
           </div>
         </header>
@@ -198,7 +196,7 @@ export const Workbench = () => {
         <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="space-y-4">
             <div className="rounded border border-[#c9c8bd] bg-white p-4">
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Sparkles size={18} /> Dispatch Table</h2>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Sparkles size={18} /> 派遣桌</h2>
               <label className="block text-sm font-medium" htmlFor="scenario">Scenario</label>
               <select id="scenario" className="mt-1 w-full rounded border border-[#c9c8bd] p-2" value={scenarioId} onChange={(event) => setScenarioId(event.target.value)}>
                 {scenarios.map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.name}</option>)}
@@ -224,7 +222,7 @@ export const Workbench = () => {
                 {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
               </select>
 
-              <label className="mt-4 block text-sm font-medium" htmlFor="topic">Human intent / task</label>
+              <label className="mt-4 block text-sm font-medium" htmlFor="topic">人类意图 / 任务</label>
               <textarea id="topic" className="mt-1 min-h-32 w-full rounded border border-[#c9c8bd] p-2" value={topic} onChange={(event) => setTopic(event.target.value)} />
               <div className="mt-2 grid gap-2">
                 {demoTopics.map((item) => (
@@ -234,16 +232,16 @@ export const Workbench = () => {
                 ))}
               </div>
 
-              <label className="mt-4 block text-sm font-medium" htmlFor="rounds">Max turns</label>
+              <label className="mt-4 block text-sm font-medium" htmlFor="rounds">最大轮次</label>
               <input id="rounds" className="mt-1 w-full accent-[#8f493f]" min={2} max={10} type="range" value={maxRounds} onChange={(event) => setMaxRounds(Number(event.target.value))} />
-              <div className="text-sm text-stone-600">{maxRounds} alternating agent turns</div>
+              <div className="text-sm text-stone-600">{maxRounds} 轮 Agent 交替发言</div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <button className="rounded bg-[#26362d] px-3 py-2 text-white disabled:opacity-60" disabled={busy || !agentAId || !agentBId || !scenarioId} onClick={generateMatch}>
-                  Match
+                  匹配
                 </button>
                 <button className="inline-flex items-center justify-center gap-2 rounded bg-[#9a4d3f] px-3 py-2 text-white disabled:opacity-60" disabled={busy || !agentAId || !agentBId || !scenarioId} onClick={run}>
-                  <Play size={16} /> Run
+                  <Play size={16} /> 运行
                 </button>
               </div>
               <p className={`mt-3 text-sm ${toneClass[status.tone]}`}>{status.text}</p>
@@ -256,7 +254,7 @@ export const Workbench = () => {
           <section className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="rounded border border-[#c9c8bd] bg-white p-4">
-                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Compass size={18} /> Scenario Rooms</h2>
+                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Compass size={18} /> Scenario 房间</h2>
                 <div className="grid gap-3 md:grid-cols-2">
                   {scenarios.map((scenario) => (
                     <button
@@ -272,33 +270,33 @@ export const Workbench = () => {
               </div>
 
               <div className="rounded border border-[#c9c8bd] bg-white p-4">
-                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Activity size={18} /> Match Signal</h2>
+                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Activity size={18} /> 匹配信号</h2>
                 {match ? (
                   <div className="space-y-3">
                     <div className="flex items-end gap-3">
                       <div className={`rounded px-3 py-2 text-5xl font-semibold text-white ${scoreTone(match.score)}`}>{match.score}</div>
-                      <div className="pb-1 text-sm text-stone-600">recommended {match.recommendedMaxRounds} turns</div>
+                      <div className="pb-1 text-sm text-stone-600">建议 {match.recommendedMaxRounds} 轮</div>
                     </div>
-                    <List title="Why it fits" items={match.reasons} />
-                    <List title="Risks to watch" items={match.risks} danger />
+                    <List title="为什么匹配" items={match.reasons} />
+                    <List title="需要注意的风险" items={match.risks} danger />
                   </div>
-                ) : <p className="text-sm leading-6 text-stone-600">Generate a match to see fit, risks, and recommended turns before dispatching the agents.</p>}
+                ) : <p className="text-sm leading-6 text-stone-600">先点击「匹配」，查看适配理由、潜在风险和建议轮次，再派出两个 Agent 进入对话。</p>}
               </div>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
               <div className="rounded border border-[#c9c8bd] bg-white p-4">
-                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><MessagesSquare size={18} /> Agent Transcript</h2>
+                <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><MessagesSquare size={18} /> Agent 对话记录</h2>
                 <div className="space-y-3">
                   {conversation?.messages?.length ? conversation.messages.map((message) => (
                     <article className="rounded border border-[#ddd8ca] bg-[#fbfaf6] p-3" key={message.id}>
                       <div className="mb-1 flex items-center justify-between gap-3 text-sm font-semibold">
                         <span>{message.speakerAgent.name}</span>
-                        <span className="text-stone-500">turn {message.turnIndex}</span>
+                        <span className="text-stone-500">第 {message.turnIndex}</span>
                       </div>
                       <p className="whitespace-pre-wrap text-sm leading-6 text-stone-700">{message.content}</p>
                     </article>
-                  )) : <p className="text-sm leading-6 text-stone-600">Run a conversation to create the transcript. The final two turns receive the closing prompt from the selected scenario.</p>}
+                  )) : <p className="text-sm leading-6 text-stone-600">点击「运行」后会生成完整对话记录。最后两轮会自动收到当前 Scenario 的收尾提示，用来沉淀关系洞察。</p>}
                 </div>
               </div>
 
@@ -306,7 +304,7 @@ export const Workbench = () => {
             </div>
 
             <div className="rounded border border-[#c9c8bd] bg-white p-4">
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Map size={18} /> Social Map</h2>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Map size={18} /> 社交地图</h2>
               {socialMap.length ? (
                 <div className="grid gap-3 md:grid-cols-4">
                   {socialMap.map((item) => (
@@ -324,15 +322,15 @@ export const Workbench = () => {
                 </div>
               ) : (
                 <div className="grid gap-3 md:grid-cols-4">
-                  {['Shared context', 'Trust potential', 'Action readiness', 'Open tension'].map((item) => (
-                    <div className="rounded border border-dashed border-[#ddd8ca] p-3 text-sm text-stone-500" key={item}>{item} appears after a run.</div>
+                  {['共同语境', '信任潜力', '行动准备度', '待解决张力'].map((item) => (
+                    <div className="rounded border border-dashed border-[#ddd8ca] p-3 text-sm text-stone-500" key={item}>{item} 会在运行后出现。</div>
                   ))}
                 </div>
               )}
             </div>
 
             <div className="rounded border border-[#c9c8bd] bg-white p-4">
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><History size={18} /> Conversation History</h2>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><History size={18} /> 历史对话</h2>
               <div className="grid gap-2 md:grid-cols-2">
                 {history.length ? history.map((run) => (
                   <button className="block rounded border border-[#ddd8ca] p-3 text-left text-sm hover:bg-[#f4f2ea]" key={run.id} onClick={async () => setConversation(await api.conversation(run.id))}>
@@ -343,7 +341,7 @@ export const Workbench = () => {
                     <span className="mt-1 block text-stone-600">{run.agentA.name} x {run.agentB.name}</span>
                     <span className="mt-1 block truncate text-stone-500">{run.topic}</span>
                   </button>
-                )) : <p className="text-sm text-stone-600">No saved runs yet.</p>}
+                )) : <p className="text-sm text-stone-600">还没有保存的对话。</p>}
               </div>
             </div>
           </section>
@@ -366,9 +364,9 @@ const AgentCard = ({ title, agent }: { title: string; agent?: Agent }) => (
         <div className="flex flex-wrap gap-2">
           {agent.skills.map((skill) => <span className="rounded bg-[#e8f0ea] px-2 py-1 text-xs" key={skill}>{skill}</span>)}
         </div>
-        <List title="Rules" items={agent.rules} />
+        <List title="规则" items={agent.rules} />
       </div>
-    ) : <p className="text-sm text-stone-600">Select an agent.</p>}
+    ) : <p className="text-sm text-stone-600">请选择一个 Agent。</p>}
   </div>
 );
 
@@ -393,40 +391,40 @@ const ReportPanel = ({
   socialMap: Array<{ label: string; strength: number; kind: string }>;
 }) => (
   <div className="rounded border border-[#c9c8bd] bg-white p-4">
-    <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Brain size={18} /> Social Report</h2>
+    <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Brain size={18} /> 社交报告</h2>
     {conversation?.report ? (
       <div className="space-y-3 text-sm">
         <div className="rounded bg-[#26362d] p-3 text-white">
-          <div className="text-xs uppercase opacity-70">Outcome</div>
+          <div className="text-xs uppercase opacity-70">结果</div>
           <p className="mt-1 leading-6">{conversation.report.summary}</p>
         </div>
         {typeof rawReport.relationshipSignal === 'string' && rawReport.relationshipSignal ? (
           <div>
-            <b>Relationship signal</b>
+            <b>关系信号</b>
             <p className="mt-1 leading-6 text-stone-700">{rawReport.relationshipSignal}</p>
           </div>
         ) : null}
         {typeof rawReport.scenarioFit === 'string' && rawReport.scenarioFit ? (
           <div>
-            <b>Scenario fit</b>
+            <b>场景适配</b>
             <p className="mt-1 leading-6 text-stone-700">{rawReport.scenarioFit}</p>
           </div>
         ) : null}
-        <List title="Shared interests" items={conversation.report.sharedInterests} />
-        <List title="Tensions" items={conversation.report.tensions} danger />
-        <List title="Next steps" items={conversation.report.suggestedNextSteps} />
-        {evolutionNotes.length ? <List title="Agent evolution notes" items={evolutionNotes} /> : null}
+        <List title="共同点" items={conversation.report.sharedInterests} />
+        <List title="分歧与张力" items={conversation.report.tensions} danger />
+        <List title="下一步" items={conversation.report.suggestedNextSteps} />
+        {evolutionNotes.length ? <List title="Agent 进化笔记" items={evolutionNotes} /> : null}
         {socialMap.length ? (
           <div className="flex items-center gap-2 rounded border border-[#ddd8ca] bg-[#fbfaf6] p-2 text-stone-700">
             <Route size={16} />
-            <span>{socialMap.length} social-map signals generated from this run.</span>
+            <span>{socialMap.length} 条社交地图信号已从本次对话生成。</span>
           </div>
         ) : null}
         <div>
-          <b>Reusable prompt</b>
+          <b>可复用 Prompt</b>
           <p className="mt-1 rounded border border-[#ddd8ca] bg-[#fbfaf6] p-2 leading-6 text-stone-700">{conversation.report.reusablePrompt}</p>
         </div>
       </div>
-    ) : <p className="text-sm leading-6 text-stone-600">The report appears after a run completes. It is designed to answer: should the human continue this connection, what did the agent learn, and what should happen next?</p>}
+    ) : <p className="text-sm leading-6 text-stone-600">运行完成后会生成报告。它会回答：真人是否值得继续这段连接、Agent 学到了什么、下一步该做什么？</p>}
   </div>
 );
