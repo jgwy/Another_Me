@@ -1,0 +1,147 @@
+name: another-me
+
+# Four isolated services (R24). The backend straddles two networks:
+#   - appnet:      db + backend + frontend (+ outbound internet for LLM calls)
+#   - sandbox_net: backend + sandbox-runner ONLY, marked `internal: true`
+# The sandbox-runner is attached to sandbox_net only, so it has NO internet,
+# NO database, and NO secrets — satisfying R20 / SC4.
+
+services:
+  db:
+    image: postgres:18.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-another_me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-another_me}
+      POSTGRES_DB: ${POSTGRES_DB:-another_me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18+ stores data in a major-version subdir; mount the parent dir
+      # (NOT /var/lib/postgresql/data) per the official image guidance.
+      - db_data:/var/lib/postgresql
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-another_me} -d ${POSTGRES_DB:-another_me}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://another_me:another_me@db:5432/another_me}
+      # Auth
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-change-me}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      # LLM
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-gpt-5-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      # Per-chunk streaming delay for the deterministic mock provider. A small
+      # value (seconds) makes the SSE spectate view stream turn-by-turn instead
+      # of resolving instantly; ignored by the real OpenAI/Anthropic providers.
+      MOCK_STREAM_DELAY: ${MOCK_STREAM_DELAY:-0.04}
+      # Orchestration
+      MAX_ROUNDS: ${MAX_ROUNDS:-8}
+      MAX_CONCURRENT_CONVERSATIONS: ${MAX_CONCURRENT_CONVERSATIONS:-4}
+      # Sandbox
+      SANDBOX_URL: ${SANDBOX_URL:-http://sandbox-runner:8001}
+      SANDBOX_TIMEOUT_SECONDS: ${SANDBOX_TIMEOUT_SECONDS:-10}
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - appnet
+      - sandbox_net
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # The browser reaches the backend via the host-published port, so this is
+      # a host URL (NOT the in-network http://backend:8000).
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    networks:
+      - appnet
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "node -e \"fetch('http://localhost:5173').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  sandbox-runner:
+    build:
+      context: ./sandbox-runner
+    restart: unless-stopped
+    environment:
+      SANDBOX_TIMEOUT_SECONDS: ${SANDBOX_TIMEOUT_SECONDS:-10}
+      # Read-only root FS (below) means temp files must live on the tmpfs mount.
+      TMPDIR: /tmp
+    # No ports published, no DB, no secrets. Internal-only network => no internet.
+    networks:
+      - sandbox_net
+    # --- Hardened isolation (R20 / SC4) -------------------------------------
+    # Per-run resource caps so untrusted code can't exhaust the host, a read-only
+    # root filesystem with a small writable tmpfs scratch, all Linux capabilities
+    # dropped, and no privilege escalation. Combined with the internal-only
+    # network and the non-root user baked into the image.
+    mem_limit: ${SANDBOX_MEM_LIMIT:-256m}
+    memswap_limit: ${SANDBOX_MEM_LIMIT:-256m}
+    cpus: ${SANDBOX_CPUS:-0.5}
+    pids_limit: ${SANDBOX_PIDS_LIMIT:-128}
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=64m,nosuid,nodev,noexec
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/health').status==200 else 1)\""
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+networks:
+  appnet:
+    driver: bridge
+  sandbox_net:
+    driver: bridge
+    internal: true
+
+volumes:
+  db_data:

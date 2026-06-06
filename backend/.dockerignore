@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+.ruff_cache
+.pytest_cache
+alembic/versions/__pycache__
+.git
+.env
+.env.*
+.python-version
