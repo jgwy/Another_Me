@@ -106,6 +106,14 @@ h1 {
 
 .panel { padding: 20px; }
 
+.launch-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
 form {
   display: grid;
   gap: 14px;

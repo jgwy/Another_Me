@@ -16,15 +16,29 @@
         </nav>
       </div>
 
-      <h1>Agent matching and conversation reports.</h1>
+      <h1>Agent social workbench.</h1>
       <p class="lede">
-        V0 reads uploaded agents, lets you pick two of them, and returns a structured mock report.
-        The real API relay can replace the mock without changing the page shape.
+        Module 03 now runs as a C-lite full-stack app. Open the workbench to match existing agents,
+        place them inside a scenario, run multi-turn dialogue, generate a report, and review history.
       </p>
+
+      <section class="panel launch-panel">
+        <div>
+          <h2>Open Full-Stack Module 03</h2>
+          <p class="description">
+            Start Docker Compose first, then use the workbench at localhost:5173.
+            This page remains as a lightweight bridge from the original mirror.
+          </p>
+        </div>
+        <div class="actions">
+          <a class="button primary" href="http://localhost:5173" target="_blank" rel="noopener">Open Social Workbench</a>
+          <a class="button" href="/modules/">Back To Module Hub</a>
+        </div>
+      </section>
 
       <div class="layout">
         <section class="panel">
-          <h2>Start Interaction</h2>
+          <h2>Legacy Mock Interaction</h2>
           <form id="socialForm">
             <label>Agent A <select name="agentA" id="agentA" required></select></label>
             <label>Agent B <select name="agentB" id="agentB" required></select></label>
