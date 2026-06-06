@@ -227,3 +227,37 @@ pre.report {
   .shell { width: min(100% - 24px, 1180px); }
   .layout { grid-template-columns: 1fr; }
 }
+
+.questionnaire {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.questionnaire fieldset {
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  background: #fff;
+}
+
+.questionnaire legend {
+  padding: 0 6px;
+  font-weight: 600;
+  font-family: var(--font-display, inherit);
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+details > summary {
+  cursor: pointer;
+  user-select: none;
+}

@@ -38,6 +38,37 @@
                 <option>Monochrome</option>
               </select>
             </label>
+            <label>Expertise / 专业 <input name="expertise" placeholder="ML systems / academic writing / indie game design ..." /></label>
+            <label>Hobbies / 爱好 <textarea name="hobbies" rows="2" placeholder="One per line, or comma-separated: AI music, hand-drip coffee, ..."></textarea></label>
+            <button id="questionnaireToggle" class="button" type="button" aria-expanded="false" aria-controls="questionnairePanel">
+              Show precision questionnaire
+            </button>
+            <div id="questionnairePanel" class="questionnaire" hidden>
+              <fieldset>
+                <legend>Personality undertone</legend>
+                <label>How do friends describe you? <input name="q_friends_describe" placeholder="reliable / strange / quiet / ..." /></label>
+                <label>What moves you most? <input name="q_what_moves" placeholder="a great idea / a long walk / ..." /></label>
+              </fieldset>
+              <fieldset>
+                <legend>Voice &amp; style</legend>
+                <label>Default speaking style
+                  <select name="q_speaking_style">
+                    <option value="">—</option>
+                    <option>Short, conclusion-first</option>
+                    <option>Explanatory, gives context</option>
+                    <option>Warm, encouraging</option>
+                    <option>Dry, precise</option>
+                  </select>
+                </label>
+                <label>Catchphrases <input name="q_catchphrases" placeholder="\"let's see\" / \"interesting\" / ..." /></label>
+              </fieldset>
+              <fieldset>
+                <legend>Boundaries</legend>
+                <label>What should this avatar NOT do for you?
+                  <textarea name="q_avatar_must_not" rows="2" placeholder="don't promise / don't speak for me on personal stuff / ..."></textarea>
+                </label>
+              </fieldset>
+            </div>
             <button id="submitButton" type="submit">Generate Avatar Card</button>
             <div id="status" class="status">Waiting for questionnaire answers.</div>
           </form>

@@ -117,6 +117,23 @@ const makeAvatarProfile = (body) => {
   const personality = text(body.personality, 500)
   const visualStyle = text(body.visualStyle, 500)
   const color = text(body.color, 80)
+  const expertise = text(body.expertise, 200)
+  const hobbies = Array.isArray(body.hobbies)
+    ? body.hobbies.map((h) => text(h, 80)).filter(Boolean).slice(0, 12)
+    : []
+  const questionnaire = (body.questionnaire && typeof body.questionnaire === 'object' && !Array.isArray(body.questionnaire))
+    ? Object.fromEntries(
+        Object.entries(body.questionnaire).slice(0, 40)
+          .map(([k, v]) => [text(k, 80), text(v, 500)])
+          .filter(([k, v]) => k && v),
+      )
+    : {}
+
+  const persona = `Persona: ${agentName} is a ${role}. Personality: ${personality}.`
+  const skills = `Skills: expertise in ${expertise || role}. Hobbies / interests: ${hobbies.join(', ') || 'general'}.`
+  const rules = `Rules: stay in character; speak in a tone matching the personality; do not invent facts about the user beyond this profile.`
+  const imagePrompt = `Visual brief — ${visualStyle}. Color direction: ${color || 'unspecified'}. Subject: ${agentName} (${role}).`
+
   return {
     id: crypto.randomUUID(),
     agentName,
@@ -124,7 +141,14 @@ const makeAvatarProfile = (body) => {
     personality,
     visualStyle,
     color,
-    prompt: `Create a virtual avatar for ${agentName}: ${role}. Personality: ${personality}. Visual style: ${visualStyle}. Color direction: ${color}.`,
+    expertise,
+    hobbies,
+    questionnaire,
+    persona,
+    skills,
+    rules,
+    imagePrompt,
+    prompt: [persona, skills, rules, imagePrompt].join('\n\n'),
     created_at: new Date().toISOString(),
   }
 }
