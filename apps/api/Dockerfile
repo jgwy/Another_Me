@@ -6,6 +6,7 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
+ENV DATABASE_URL=postgresql://another_me:another_me@postgres:5432/another_me
 RUN pnpm --filter @another-me/api db:generate
 EXPOSE 4000
 CMD ["pnpm", "--filter", "@another-me/api", "dev"]
