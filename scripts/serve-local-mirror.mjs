@@ -4,7 +4,6 @@ import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
-import { spawn } from 'node:child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..', 'site')
@@ -12,7 +11,6 @@ const modulePartsRoot = path.resolve(__dirname, '..', 'modules')
 const modulesRoot = path.resolve(__dirname, '..', 'modules', 'web')
 const dataDir = path.resolve(__dirname, '..', 'data')
 const vibeResearchRoot = '/gpfs/users/liujinxiu/research/viberesearch'
-const vibeResearchPython = path.join(vibeResearchRoot, '.venv', 'bin', 'python')
 const globalEnvFile = '/gpfs/users/liujinxiu/.env'
 const agentsFile = path.join(dataDir, 'uploaded-agents.json')
 const moduleAgentsFile = path.join(dataDir, 'module-agent-launch-agents.json')
@@ -90,60 +88,38 @@ const buildAgentRuntimePrompt = (message, agent) => {
   ].join('\n')
 }
 
-const runEvoScientistChat = async (message, agent = null) => {
+const runAnotherMeChat = async (message, agent = null) => {
   const envFromFile = await readDotEnv(globalEnvFile)
-  const pythonBin = await fs.access(vibeResearchPython).then(() => vibeResearchPython).catch(() => 'python')
   const model = envFromFile.OPENAI_MODEL || process.env.OPENAI_MODEL || 'gpt-5'
+  const apiKey = envFromFile.OPENAI_API_KEY || envFromFile.LLM_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY
+  const baseUrl = (envFromFile.OPENAI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '')
+  if (!apiKey) throw new Error('缺少 OPENAI_API_KEY 或 LLM_API_KEY。')
   const runtimePrompt = buildAgentRuntimePrompt(message, agent)
-  const env = {
-    ...process.env,
-    ...envFromFile,
-    EVOSCIENTIST_UI_BACKEND: 'cli',
-    PYTHONPATH: [vibeResearchRoot, process.env.PYTHONPATH].filter(Boolean).join(':'),
-    FORCE_COLOR: '0',
-    NO_COLOR: '1',
-  }
-  const args = [
-    '-m',
-    'EvoScientist',
-    '--prompt',
-    runtimePrompt,
-    '--ui',
-    'cli',
-    '--no-thinking',
-    '--auto-approve',
-    '--workdir',
-    vibeResearchRoot,
-  ]
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(pythonBin, args, {
-      cwd: vibeResearchRoot,
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    let stderr = ''
-    const timeout = setTimeout(() => {
-      child.kill('SIGTERM')
-      reject(new Error('聊天助手调用超时。请缩短问题或检查模型配置。'))
-    }, 120000)
-    child.stdout.on('data', (chunk) => { stdout += chunk.toString('utf8') })
-    child.stderr.on('data', (chunk) => { stderr += chunk.toString('utf8') })
-    child.on('error', (error) => {
-      clearTimeout(timeout)
-      reject(error)
-    })
-    child.on('close', (code) => {
-      clearTimeout(timeout)
-      const output = `${stdout}\n${stderr}`.trim()
-      if (code === 0) {
-        resolve({ output: extractAssistantReply(output), code })
-        return
-      }
-      reject(new Error(sanitizeAssistantOutput(output || `Chat assistant exited with code ${code}`)))
-    })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 60000)
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: 'You are Another Me. Reply concisely and do not mention implementation details.' },
+        { role: 'user', content: runtimePrompt },
+      ],
+    }),
+    signal: controller.signal,
   })
+  clearTimeout(timeout)
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const detail = data?.error?.message || data?.message || `模型接口返回 ${response.status}`
+    throw new Error(sanitizeAssistantOutput(detail))
+  }
+  const output = data?.choices?.[0]?.message?.content
+  return { output: sanitizeAssistantOutput(output || '') }
 }
 
 const sanitizeAssistantOutput = (value) => String(value || '')
@@ -319,7 +295,7 @@ const mockApi = async (req, res, requestUrl) => {
       const agents = agentId ? await loadJsonFile(moduleAgentsFile, []) : []
       const agent = agentId ? agents.find((item) => item.id === agentId) : null
       if (agentId && !agent) return json(res, { error: 'agent not found' }, 404)
-      const result = await runEvoScientistChat(message, agent)
+      const result = await runAnotherMeChat(message, agent)
       return json(res, {
         output: result.output,
       })
