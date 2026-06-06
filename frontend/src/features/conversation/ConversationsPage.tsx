@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 import { useConversations, useScenarios } from "../../lib/queries";
 import { fadeUp, spring, staggerContainer } from "../../lib/anim";
@@ -24,6 +25,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 export function ConversationsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(["conversation", "common"]);
   const conversationsQuery = useConversations();
   const scenariosQuery = useScenarios();
 
@@ -38,10 +40,10 @@ export function ConversationsPage() {
   return (
     <div className="flex flex-col gap-7">
       <PageHeader
-        eyebrow="Activity"
-        title="Conversations"
-        description="Every table on the island — live and finished. Open one to spectate or read its report."
-        actions={<Button onClick={() => navigate("/dispatch")}>Dispatch a twin</Button>}
+        eyebrow={t("list.eyebrow")}
+        title={t("list.title")}
+        description={t("list.description")}
+        actions={<Button onClick={() => navigate("/dispatch")}>{t("list.dispatch")}</Button>}
       />
 
       {conversationsQuery.isLoading ? (
@@ -53,9 +55,9 @@ export function ConversationsPage() {
       ) : conversations.length === 0 ? (
         <EmptyState
           icon="🗺️"
-          title="No conversations yet"
-          description="Dispatch a twin into a scenario to seat the island's first table."
-          action={<Button onClick={() => navigate("/dispatch")}>Dispatch a twin</Button>}
+          title={t("list.emptyTitle")}
+          description={t("list.emptyDescription")}
+          action={<Button onClick={() => navigate("/dispatch")}>{t("list.dispatch")}</Button>}
         />
       ) : (
         <motion.ul variants={staggerContainer(0.05)} initial="hidden" animate="show" className="flex flex-col gap-3">
@@ -72,19 +74,19 @@ export function ConversationsPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-ink">
-                    {c.title ?? scenarioById.get(c.scenario_id) ?? "Conversation"}
+                    {c.title ?? scenarioById.get(c.scenario_id) ?? t("list.fallbackTitle")}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-faint">
                     <span>{scenarioById.get(c.scenario_id)}</span>
                     <span>·</span>
-                    <span>{c.participants.length} twins</span>
+                    <span>{t("list.twins", { count: c.participants.length })}</span>
                     <span>·</span>
                     <span>{timeAgo(c.started_at ?? c.created_at)}</span>
                   </div>
                 </div>
                 <Badge tone={STATUS_TONE[c.status] ?? "neutral"}>
                   <span className={cn("mr-1 inline-block h-1.5 w-1.5 rounded-full", c.status === "running" ? "bg-success" : "bg-faint")} />
-                  {c.status}
+                  {t(`common:status.${c.status}`, { defaultValue: c.status })}
                 </Badge>
               </Card>
             </motion.li>

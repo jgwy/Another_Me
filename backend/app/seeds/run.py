@@ -16,6 +16,7 @@ from app.core.db import async_session_maker
 from app.core.security import hash_password
 from app.models import Agent, Scenario, Skill, User
 from app.seeds.data import NPC_AGENTS, NPC_USER_EMAIL, NPC_USER_NAME, SCENARIOS
+from app.seeds.demo import seed_demo
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("app.seeds")
@@ -93,6 +94,9 @@ async def _seed() -> None:
         owner = await _ensure_npc_user(session)
         await _upsert_scenarios(session)
         await _upsert_npc_agents(session, owner)
+        # Rich demo world (library skills + marketplace + demo user/twin + a
+        # completed trip with reports/postcards/relationships/inbox). Idempotent.
+        await seed_demo(session, owner)
         await session.commit()
     logger.info("seed: done")
 

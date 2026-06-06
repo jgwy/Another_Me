@@ -57,6 +57,8 @@ services:
       # Orchestration
       MAX_ROUNDS: ${MAX_ROUNDS:-8}
       MAX_CONCURRENT_CONVERSATIONS: ${MAX_CONCURRENT_CONVERSATIONS:-4}
+      # Trips: real wall-clock duration (seconds) a journey is spread over.
+      TRIP_DURATION: ${TRIP_DURATION:-60}
       # Sandbox
       SANDBOX_URL: ${SANDBOX_URL:-http://sandbox-runner:8001}
       SANDBOX_TIMEOUT_SECONDS: ${SANDBOX_TIMEOUT_SECONDS:-10}

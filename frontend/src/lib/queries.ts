@@ -14,27 +14,46 @@ import {
   createAgent,
   createDispatch,
   createMarketplaceItem,
+  createSkill,
+  deleteSkill,
+  emptyPromptConfig,
   forkAgent,
   forkMarketplaceItem,
+  generateAgent,
   getAgent,
   getConversation,
   getConversationReport,
   getDispatch,
   getMessages,
   getPoints,
+  getRelationshipGraph,
   getReport,
   getScenario,
+  getSkill,
+  getUnreadCount,
+  likeMarketplaceItem,
   listAgents,
   listConversations,
   listDispatches,
   listEvolutions,
+  listInbox,
   listMarketplace,
+  listMarketplaceVersions,
+  listRelationships,
   listScenarios,
+  listSkills,
+  markAllNotificationsRead,
+  markNotificationRead,
   patchAgent,
+  patchSkill,
+  publishMarketplaceItem,
+  runSandbox,
 } from "./api";
 import type {
   Agent,
   AgentCreate,
+  AgentGenerateRequest,
+  AgentGenerateResponse,
   AgentListParams,
   AgentPatch,
   Conversation,
@@ -43,15 +62,29 @@ import type {
   DispatchCreate,
   DispatchListParams,
   Evolution,
+  InboxListParams,
   MarketplaceCreate,
   MarketplaceForkResult,
   MarketplaceItem,
+  MarketplaceLikeResult,
   MarketplaceListParams,
+  MarketplacePublishBody,
+  MarketplaceVersion,
   Message,
+  Notification,
   Page,
   PointsBalance,
+  Relationship,
+  RelationshipGraph,
+  RelationshipListParams,
   Report,
+  SandboxRunRequest,
+  SandboxRunResult,
   Scenario,
+  Skill,
+  SkillCreate,
+  SkillListParams,
+  SkillPatch,
 } from "./api";
 import { fabricateAgent, mockStore, pickAvatar } from "./mocks";
 
@@ -101,7 +134,14 @@ export const qk = {
   reportByConversation: (id: string) => ["report-by-conversation", id] as const,
   report: (id: string) => ["report", id] as const,
   marketplace: (params?: MarketplaceListParams) => ["marketplace", params ?? {}] as const,
+  marketplaceVersions: (id: string) => ["marketplace-versions", id] as const,
   points: ["points"] as const,
+  skills: (params?: SkillListParams) => ["skills", params ?? {}] as const,
+  skill: (id: string) => ["skill", id] as const,
+  inbox: (params?: InboxListParams) => ["inbox", params ?? {}] as const,
+  unreadCount: ["inbox-unread-count"] as const,
+  relationships: (params?: RelationshipListParams) => ["relationships", params ?? {}] as const,
+  relationshipGraph: (agentId?: string) => ["relationship-graph", agentId ?? "all"] as const,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -326,6 +366,199 @@ export function useForkMarketplaceItem() {
       qc.invalidateQueries({ queryKey: ["marketplace"] });
       qc.invalidateQueries({ queryKey: qk.points });
       qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["skills"] });
     },
+  });
+}
+
+/** v2: toggle like on a listing (optimistic invalidation of the listing pages). */
+export function useLikeMarketplaceItem() {
+  const qc = useQueryClient();
+  return useMutation<MarketplaceLikeResult, Error, string>({
+    mutationFn: (id) => orMock(likeMarketplaceItem(id), () => mockStore.likeMarketplaceItem(id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["marketplace"] }),
+  });
+}
+
+export function useMarketplaceVersions(id: string | undefined) {
+  return useQuery<MarketplaceVersion[]>({
+    queryKey: qk.marketplaceVersions(id ?? ""),
+    enabled: !!id,
+    queryFn: () =>
+      orMock(listMarketplaceVersions(id!), () => mockStore.listMarketplaceVersions(id!)),
+  });
+}
+
+export function usePublishMarketplaceItem() {
+  const qc = useQueryClient();
+  return useMutation<MarketplaceItem, Error, { id: string; body?: MarketplacePublishBody }>({
+    mutationFn: ({ id, body }) =>
+      orMock(publishMarketplaceItem(id, body), () => mockStore.publishMarketplaceItem(id, body)),
+    onSuccess: (_item, { id }) => {
+      qc.invalidateQueries({ queryKey: ["marketplace"] });
+      qc.invalidateQueries({ queryKey: qk.marketplaceVersions(id) });
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Agent generation (NL / corpus → prompt_config draft)                        */
+/* -------------------------------------------------------------------------- */
+
+/** Typed-mock generator so the create flow works before the endpoint lands. */
+function fabricateGenerate(req: AgentGenerateRequest): AgentGenerateResponse {
+  const input = req.input.trim();
+  const firstSentence = input.split(/[。.!?！？\n]/)[0]?.trim() || input.slice(0, 60);
+  const name = req.name?.trim() || (req.mode === "nl" ? "新的分身" : "语料分身");
+  const cfg = emptyPromptConfig(name);
+  cfg.identity.one_liner = firstSentence;
+  cfg.identity.background = input.slice(0, 600);
+  cfg.voice.tone = req.mode === "corpus" ? "贴近语料的真实口吻" : "自然、真诚";
+  // Naive keyword extraction for plausible tags.
+  const words = Array.from(new Set(input.split(/[\s,，、。.!?！？]+/).filter((w) => w.length >= 2)));
+  const tags = words.slice(0, 5);
+  cfg.interests.passions = words.slice(0, 3);
+  return {
+    name,
+    prompt_config: cfg,
+    persona: firstSentence,
+    rules: { tone: cfg.voice.tone, dos: [], donts: [] },
+    profile_tags: tags,
+    skills: [],
+    questions:
+      req.mode === "nl"
+        ? ["TA 最在意的一两件事是什么？", "TA 说话时有什么口头禅或语气？", "有没有一个最能代表 TA 的小故事？"]
+        : ["这段语料里，哪些是 TA 最典型的表达？", "有没有需要刻意避免的话题？"],
+  };
+}
+
+export function useGenerateAgent() {
+  return useMutation<AgentGenerateResponse, Error, AgentGenerateRequest>({
+    mutationFn: (req) => orMock(generateAgent(req), () => fabricateGenerate(req)),
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Skills (standalone v2)                                                      */
+/* -------------------------------------------------------------------------- */
+
+export function useSkills(params?: SkillListParams) {
+  return useQuery<Page<Skill>>({
+    queryKey: qk.skills(params),
+    queryFn: () => orMock(listSkills(params), () => mockStore.listSkills(params)),
+  });
+}
+
+export function useSkill(id: string | undefined) {
+  return useQuery<Skill | undefined>({
+    queryKey: qk.skill(id ?? ""),
+    enabled: !!id,
+    queryFn: () => orMock(getSkill(id!), () => mockStore.getSkill(id!)),
+  });
+}
+
+export function useCreateSkill() {
+  const qc = useQueryClient();
+  return useMutation<Skill, Error, SkillCreate>({
+    mutationFn: (body) => orMock(createSkill(body), () => mockStore.createSkill(body)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
+  });
+}
+
+export function usePatchSkill() {
+  const qc = useQueryClient();
+  return useMutation<Skill | undefined, Error, { id: string; body: SkillPatch }>({
+    mutationFn: ({ id, body }) => orMock(patchSkill(id, body), () => mockStore.patchSkill(id, body)),
+    onSuccess: (_s, { id }) => {
+      qc.invalidateQueries({ queryKey: ["skills"] });
+      qc.invalidateQueries({ queryKey: qk.skill(id) });
+    },
+  });
+}
+
+export function useDeleteSkill() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) =>
+      orMock(deleteSkill(id), () => {
+        mockStore.deleteSkill(id);
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Inbox / notifications                                                       */
+/* -------------------------------------------------------------------------- */
+
+export function useInbox(params?: InboxListParams) {
+  return useQuery<Page<Notification>>({
+    queryKey: qk.inbox(params),
+    queryFn: () => orMock(listInbox(params), () => mockStore.listInbox(params)),
+  });
+}
+
+/** Drives the nav unread red-dot. Polls modestly so new mail surfaces. */
+export function useUnreadCount() {
+  return useQuery<{ count: number }>({
+    queryKey: qk.unreadCount,
+    queryFn: () => orMock(getUnreadCount(), () => mockStore.getUnreadCount()),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation<Notification | undefined, Error, string>({
+    mutationFn: (id) =>
+      orMock(markNotificationRead(id), () => mockStore.markNotificationRead(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inbox"] });
+      qc.invalidateQueries({ queryKey: qk.unreadCount });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation<{ updated: number }, Error, void>({
+    mutationFn: () => orMock(markAllNotificationsRead(), () => mockStore.markAllNotificationsRead()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inbox"] });
+      qc.invalidateQueries({ queryKey: qk.unreadCount });
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Relationships / graph                                                       */
+/* -------------------------------------------------------------------------- */
+
+export function useRelationships(params?: RelationshipListParams) {
+  return useQuery<Page<Relationship>>({
+    queryKey: qk.relationships(params),
+    queryFn: () => orMock(listRelationships(params), () => mockStore.listRelationships(params)),
+  });
+}
+
+export function useRelationshipGraph(agentId?: string) {
+  return useQuery<RelationshipGraph>({
+    queryKey: qk.relationshipGraph(agentId),
+    queryFn: () => orMock(getRelationshipGraph(agentId), () => mockStore.getRelationshipGraph(agentId)),
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sandbox run (standalone workspace)                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Run code in the sandbox. Targets the backend pass-through and falls back to a
+ * typed mock (flipping demo mode) until that route lands — confirm the path at
+ * integration. See {@link runSandbox}.
+ */
+export function useRunSandbox() {
+  return useMutation<SandboxRunResult, Error, SandboxRunRequest>({
+    mutationFn: (body) => orMock(runSandbox(body), () => mockStore.runSandbox(body)),
   });
 }

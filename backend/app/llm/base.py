@@ -128,8 +128,22 @@ def get_provider() -> LLMProvider:
 
 def reset_provider_cache() -> None:
     """Drop the cached provider (used by tests after changing env)."""
-    global _provider
+    global _provider, _fallback_mock
     _provider = None
+    _fallback_mock = None
+
+
+_fallback_mock: LLMProvider | None = None
+
+
+def _get_fallback_mock() -> LLMProvider:
+    """Cached deterministic mock used as a call-time safety net for real providers."""
+    global _fallback_mock
+    if _fallback_mock is None:
+        from app.llm.mock_provider import MockProvider
+
+        _fallback_mock = MockProvider(model=get_settings().llm_model or "mock-1")
+    return _fallback_mock
 
 
 async def complete(
@@ -140,13 +154,26 @@ async def complete(
     max_tokens: int = 1024,
     meta: Mapping[str, Any] | None = None,
 ) -> str:
-    """Convenience: full completion via the active provider."""
-    return await get_provider().complete(
-        messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta
-    )
+    """Convenience: full completion via the active provider.
+
+    If a *real* provider call fails (e.g. invalid key, network/timeout, rate
+    limit), fall back to the deterministic mock for this call so the pipeline
+    never hard-fails. ``meta`` carries the mode the mock needs to render."""
+    provider = get_provider()
+    try:
+        return await provider.complete(
+            messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta
+        )
+    except Exception as exc:  # noqa: BLE001
+        if provider.name == "mock":
+            raise
+        logger.warning("LLM provider %r failed (%s) — falling back to mock for this call", provider.name, exc)
+        return await _get_fallback_mock().complete(
+            messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta
+        )
 
 
-def stream(
+async def stream(
     messages: Iterable[Any],
     *,
     model: str | None = None,
@@ -154,7 +181,36 @@ def stream(
     max_tokens: int = 1024,
     meta: Mapping[str, Any] | None = None,
 ) -> AsyncIterator[str]:
-    """Convenience: streaming deltas via the active provider."""
-    return get_provider().stream(
-        messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta
-    )
+    """Convenience: streaming deltas via the active provider.
+
+    Mirrors :func:`complete`'s safety net: if a real provider errors before the
+    first token, fall back to the mock stream; if it errors mid-stream, stop
+    gracefully (the partial text is already persisted upstream)."""
+    provider = get_provider()
+    if provider.name == "mock":
+        async for delta in provider.stream(
+            messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta
+        ):
+            yield delta
+        return
+
+    gen = provider.stream(messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta)
+    try:
+        first = await gen.__anext__()
+    except StopAsyncIteration:
+        return
+    except Exception as exc:  # noqa: BLE001 - connect-time failure → fall back fully
+        logger.warning("LLM provider %r stream failed (%s) — falling back to mock", provider.name, exc)
+        async for delta in _get_fallback_mock().stream(
+            messages, model=model, temperature=temperature, max_tokens=max_tokens, meta=meta
+        ):
+            yield delta
+        return
+
+    yield first
+    try:
+        async for delta in gen:
+            yield delta
+    except Exception as exc:  # noqa: BLE001 - mid-stream failure → stop with partial output
+        logger.warning("LLM provider %r stream interrupted (%s)", provider.name, exc)
+        return

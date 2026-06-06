@@ -9,10 +9,12 @@ from app.orchestrator.engine import (
     start,
 )
 from app.orchestrator.protocol import TurnStep, compute_rounds, ending_start_turn, plan_turns
-from app.orchestrator.pubsub import bus
+from app.orchestrator.pubsub import bus, trip_bus
+from app.orchestrator.trip_engine import request_cancel, run_trip, start_trip
 
 __all__ = [
     "bus",
+    "trip_bus",
     "start",
     "create_conversation",
     "manual_start",
@@ -21,4 +23,7 @@ __all__ = [
     "plan_turns",
     "ending_start_turn",
     "TurnStep",
+    "start_trip",
+    "run_trip",
+    "request_cancel",
 ]

@@ -1,0 +1,44 @@
+{
+  "nav": "Inbox",
+  "page": {
+    "eyebrow": "Inbox",
+    "title": "Inbox",
+    "description": "Postcards, per-encounter reports, and trip summaries your twins bring back from the world land here.",
+    "backLabel": "World"
+  },
+  "filters": {
+    "all": "All",
+    "unread": "Unread"
+  },
+  "actions": {
+    "markAllRead": "Mark all read",
+    "markRead": "Mark read",
+    "view": "View"
+  },
+  "empty": {
+    "title": "Your inbox is empty",
+    "description": "Dispatch a twin and it'll mail postcards and reports here when it returns.",
+    "unreadTitle": "Nothing unread",
+    "unreadDescription": "You're all caught up."
+  },
+  "unreadBadge": "{{count}} unread",
+  "unreadLine": "{{count}} unread",
+  "kind": {
+    "trip_completed": "Trip returned",
+    "encounter_completed": "Encounter done",
+    "report_ready": "Report ready",
+    "postcard": "Postcard",
+    "relationship_update": "Relationship",
+    "marketplace": "Marketplace",
+    "system": "System"
+  },
+  "open": {
+    "report": "View report",
+    "conversation": "Spectate",
+    "trip": "View trip",
+    "agent": "View twin",
+    "relationships": "View graph",
+    "marketplace": "View marketplace"
+  },
+  "loadMore": "Load more"
+}

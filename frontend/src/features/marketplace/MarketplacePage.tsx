@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "../../lib/api";
 import type { MarketplaceItem, MarketplaceKind, MarketplaceListParams } from "../../lib/api";
 import {
@@ -20,24 +21,28 @@ import { Spinner } from "../../components/ui/Spinner";
 import { spring, staggerContainer } from "../../lib/anim";
 import { cn } from "../../lib/cn";
 import { MarketplaceCard } from "./MarketplaceCard";
+import { PublishModal } from "./PublishModal";
 import { UploadModal } from "./UploadModal";
+import { VersionsModal } from "./VersionsModal";
 
 const KIND_FILTERS = [
-  { value: "all", label: "All" },
-  { value: "agent", label: "Agents" },
-  { value: "skill", label: "Skills" },
+  { value: "all", labelKey: "filters.all" },
+  { value: "agent", labelKey: "filters.agents" },
+  { value: "skill", labelKey: "filters.skills" },
 ] as const;
 
 const SORTS = [
-  { value: "downloads", label: "Popular" },
-  { value: "recent", label: "New" },
+  { value: "downloads", labelKey: "filters.popular" },
+  { value: "recent", labelKey: "filters.new" },
+  { value: "likes", labelKey: "filters.liked" },
 ] as const;
 
 type KindFilter = "all" | MarketplaceKind;
 type SortKey = (typeof SORTS)[number]["value"];
 
 type Notice =
-  | { tone: "success"; title: string; price: number; kind: MarketplaceKind }
+  | { tone: "success"; title: string; price: number; kind: MarketplaceKind; sourceVersion?: number | null }
+  | { tone: "info"; message: string }
   | { tone: "danger"; message: string };
 
 /** Debounce a fast-changing value so search doesn't refetch on every keystroke. */
@@ -52,6 +57,7 @@ function useDebounced<T>(value: T, delay: number): T {
 
 export function MarketplacePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(["marketplace", "common"]);
   const demo = useDemoMode();
 
   const [search, setSearch] = useState("");
@@ -62,7 +68,8 @@ export function MarketplacePage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [forkingId, setForkingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [opponentId, setOpponentId] = useState("");
+  const [versionsItem, setVersionsItem] = useState<MarketplaceItem | null>(null);
+  const [publishItem, setPublishItem] = useState<MarketplaceItem | null>(null);
 
   const params: MarketplaceListParams = {
     q: debouncedSearch.trim() || undefined,
@@ -96,11 +103,12 @@ export function MarketplacePage() {
         title: result.item.title,
         price: result.item.price_points,
         kind: result.item.kind,
+        sourceVersion: result.source_version,
       });
     } catch (err) {
       setNotice({
         tone: "danger",
-        message: err instanceof ApiError ? err.detail : "Could not fork this item.",
+        message: err instanceof ApiError ? err.detail : t("notice.forkError"),
       });
     } finally {
       setForkingId(null);
@@ -112,29 +120,23 @@ export function MarketplacePage() {
     setKind("all");
   };
 
-  const connectById = () => {
-    const id = opponentId.trim();
-    if (!id) return;
-    navigate(`/dispatch?opponent=${encodeURIComponent(id)}`);
-  };
-
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Marketplace"
-        eyebrow="Island marketplace"
-        description="Browse, fork, and list AI twins and skills. The points economy is simulated — no real payment."
+        title={t("page.title")}
+        eyebrow={t("page.eyebrow")}
+        description={t("page.description")}
         actions={
           <>
-            {demo && <Badge tone="warning">Demo data</Badge>}
+            {demo && <Badge tone="warning">{t("common:demo.badge")}</Badge>}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface-2/60 px-3 py-1.5 text-sm font-medium text-ink">
               <span aria-hidden className="text-brand">
                 ⟡
               </span>
-              {pointsQuery.isLoading ? "…" : points.toLocaleString()} pts
+              {t("pts", { value: pointsQuery.isLoading ? "…" : points.toLocaleString() })}
             </span>
             <Button onClick={() => setUploadOpen(true)} leftIcon={<PlusIcon />}>
-              List something
+              {t("page.list")}
             </Button>
           </>
         }
@@ -143,31 +145,42 @@ export function MarketplacePage() {
       <AnimatePresence>
         {notice && (
           <motion.div
-            key={notice.tone === "success" ? `s-${notice.title}` : `e-${notice.message}`}
+            key={"message" in notice ? `${notice.tone}-${notice.message}` : `s-${notice.title}`}
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={spring.soft}
             className={cn(
               "flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm",
-              notice.tone === "success"
-                ? "border-accent/30 bg-accent/10 text-accent"
-                : "border-danger/40 bg-danger/10 text-danger",
+              notice.tone === "danger"
+                ? "border-danger/40 bg-danger/10 text-danger"
+                : "border-accent/30 bg-accent/10 text-accent",
             )}
           >
             {notice.tone === "success" ? (
               <>
                 <span>
-                  Forked <span className="font-semibold">{notice.title}</span> —{" "}
-                  {notice.price === 0 ? "free" : `${notice.price} pts spent`}.{" "}
-                  {notice.kind === "agent" ? "Now in your agents." : "Added to your skills."}
+                  {notice.price === 0
+                    ? t("notice.forkedFree", {
+                        title: notice.title,
+                        destination:
+                          notice.kind === "agent" ? t("notice.toAgents") : t("notice.toSkills"),
+                      })
+                    : t("notice.forkedPaid", {
+                        title: notice.title,
+                        price: notice.price.toLocaleString(),
+                        destination:
+                          notice.kind === "agent" ? t("notice.toAgents") : t("notice.toSkills"),
+                      })}
+                  {notice.sourceVersion != null &&
+                    ` ${t("notice.fromVersion", { version: notice.sourceVersion })}`}
                 </span>
                 {notice.kind === "agent" && (
                   <Link
                     to="/agents"
                     className="shrink-0 font-medium underline-offset-2 hover:underline"
                   >
-                    View agents →
+                    {t("notice.viewAgents")}
                   </Link>
                 )}
               </>
@@ -183,15 +196,23 @@ export function MarketplacePage() {
         <div className="sm:max-w-xs sm:flex-1">
           <Input
             leftIcon={<SearchIcon />}
-            placeholder="Search the market…"
+            placeholder={t("filters.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search marketplace"
+            aria-label={t("filters.searchAria")}
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented value={kind} onChange={(v) => setKind(v)} options={KIND_FILTERS} />
-          <Segmented value={sort} onChange={(v) => setSort(v)} options={SORTS} />
+          <Segmented
+            value={kind}
+            onChange={(v) => setKind(v)}
+            options={KIND_FILTERS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+          />
+          <Segmented
+            value={sort}
+            onChange={(v) => setSort(v)}
+            options={SORTS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+          />
         </div>
       </div>
 
@@ -199,7 +220,7 @@ export function MarketplacePage() {
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted">
-            {isLoading ? "Loading…" : `${total} ${total === 1 ? "listing" : "listings"}`}
+            {isLoading ? t("common:actions.loading") : t("results.count", { count: total })}
           </p>
           {isFetching && !isLoading && <Spinner size={16} className="text-faint" />}
         </div>
@@ -224,20 +245,16 @@ export function MarketplacePage() {
         ) : items.length === 0 ? (
           <EmptyState
             icon="🛍️"
-            title="No listings found"
-            description={
-              hasFilters
-                ? "Try a different search or filter."
-                : "Be the first to list an agent or skill on the island."
-            }
+            title={t("results.emptyTitle")}
+            description={hasFilters ? t("results.emptyFiltered") : t("results.empty")}
             action={
               hasFilters ? (
                 <Button variant="secondary" onClick={clearFilters}>
-                  Clear filters
+                  {t("results.clearFilters")}
                 </Button>
               ) : (
                 <Button onClick={() => setUploadOpen(true)} leftIcon={<PlusIcon />}>
-                  List something
+                  {t("page.list")}
                 </Button>
               )
             }
@@ -256,6 +273,8 @@ export function MarketplacePage() {
                   item={item}
                   onFork={handleFork}
                   forking={forkingId === item.id}
+                  onViewVersions={setVersionsItem}
+                  onPublish={setPublishItem}
                 />
               ))}
             </AnimatePresence>
@@ -263,63 +282,41 @@ export function MarketplacePage() {
         )}
       </section>
 
-      {/* Find an opponent (R6 matching entry points) */}
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Find an opponent</h2>
-          <p className="text-sm text-muted">Send your twin into a scenario against another agent.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="flex flex-col gap-3 p-5">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-soft text-xl">
-              🎯
+      {/* Dispatch is now autonomous — point owners at the trip flow. */}
+      <section>
+        <Card
+          glow
+          className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-soft text-2xl">
+              🧭
             </div>
             <div className="flex flex-col gap-1">
-              <h3 className="text-base font-semibold tracking-tight text-ink">
-                Smart match by profile
-              </h3>
-              <p className="text-sm text-muted">
-                Let the island pair your twin with a compatible opponent from matching profile tags.
-              </p>
+              <h2 className="text-lg font-semibold tracking-tight text-ink">
+                {t("dispatchCta.title")}
+              </h2>
+              <p className="max-w-xl text-sm text-muted">{t("dispatchCta.description")}</p>
             </div>
-            <div className="mt-1">
-              <Button variant="secondary" onClick={() => navigate("/dispatch")}>
-                Find a match
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="flex flex-col gap-3 p-5">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-xl">
-              🔗
-            </div>
-            <div className="flex flex-col gap-1">
-              <h3 className="text-base font-semibold tracking-tight text-ink">Connect by Agent ID</h3>
-              <p className="text-sm text-muted">
-                Already know who you want to face? Paste their agent ID to challenge them directly.
-              </p>
-            </div>
-            <div className="mt-1 flex items-start gap-2">
-              <div className="flex-1">
-                <Input
-                  value={opponentId}
-                  onChange={(e) => setOpponentId(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") connectById();
-                  }}
-                  placeholder="agent-id…"
-                  aria-label="Opponent agent ID"
-                />
-              </div>
-              <Button onClick={connectById} disabled={!opponentId.trim()}>
-                Connect
-              </Button>
-            </div>
-          </Card>
-        </div>
+          </div>
+          <Button onClick={() => navigate("/dispatch")} rightIcon={<ArrowRightIcon />} className="shrink-0">
+            {t("dispatchCta.action")}
+          </Button>
+        </Card>
       </section>
 
       <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <VersionsModal
+        item={versionsItem}
+        open={versionsItem != null}
+        onClose={() => setVersionsItem(null)}
+      />
+      <PublishModal
+        item={publishItem}
+        open={publishItem != null}
+        onClose={() => setPublishItem(null)}
+        onPublished={(version) => setNotice({ tone: "info", message: t("publish.success", { version }) })}
+      />
     </div>
   );
 }
@@ -365,6 +362,20 @@ function PlusIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 12h14m0 0-6-6m6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

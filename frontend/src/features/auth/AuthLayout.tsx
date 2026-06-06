@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Card } from "../../components/ui/Card";
 
 export interface AuthLayoutProps {
@@ -11,6 +12,7 @@ export interface AuthLayoutProps {
 }
 
 export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
+  const { t } = useTranslation("common");
   return (
     <div className="relative grid min-h-dvh place-items-center overflow-hidden px-4 py-10">
       <div
@@ -33,7 +35,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-accent shadow-glow">
               <span className="h-3 w-3 rounded-full bg-white/90" />
             </span>
-            <span className="text-lg font-semibold tracking-tight text-ink">Another Me</span>
+            <span className="text-lg font-semibold tracking-tight text-ink">{t("brand.name")}</span>
           </Link>
         </div>
 

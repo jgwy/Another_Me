@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/* Design tokens — Another Me dark theme                                       */
+/* Design tokens — 觅见.AI dark theme                                          */
 /* Deep slate/indigo canvas, layered surfaces, a violet brand + emerald accent */
+/* Unified system: surfaces, scenario accents, journey palette, world canvas,  */
+/* motion easings. Consumed across the app + the living-world map.             */
 /* -------------------------------------------------------------------------- */
 @theme {
   /* Type */
@@ -51,6 +53,41 @@
   --shadow-soft: 0 18px 50px -24px rgba(0, 0, 0, 0.85);
   --shadow-card: 0 24px 60px -28px rgba(0, 0, 0, 0.9);
   --shadow-glow: 0 10px 30px -10px rgba(124, 92, 255, 0.55);
+  --shadow-float: 0 32px 80px -32px rgba(0, 0, 0, 0.95);
+  --shadow-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+
+  /* -------------------------------------------------------------------- */
+  /* Scenario accents — shared by the world map + cards so a scene reads   */
+  /* the same color everywhere it appears.                                 */
+  /* -------------------------------------------------------------------- */
+  --color-scn-exchange: #7c5cff;
+  --color-scn-cafe: #2dd4a7;
+  --color-scn-lab: #fbbf55;
+  --color-scn-coding: #38bdf8;
+
+  /* -------------------------------------------------------------------- */
+  /* Travel-frog journey status palette (thinking → returned).             */
+  /* -------------------------------------------------------------------- */
+  --color-journey-thinking: #a78bfa;
+  --color-journey-departing: #818cf8;
+  --color-journey-on-road: #38bdf8;
+  --color-journey-meeting: #fbbf55;
+  --color-journey-talking: #2dd4a7;
+  --color-journey-returned: #36d399;
+
+  /* World canvas gradient stops (deep night → horizon glow). */
+  --color-world-deep: #060912;
+  --color-world-mid: #0b1326;
+  --color-world-grass: #16352b;
+  --color-world-grass-edge: #2dd4a7;
+  --color-world-path: #1b2238;
+
+  /* Motion language — easings + durations for a consistent feel. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+  --duration-slow: 420ms;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -171,5 +208,93 @@
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
+  }
+
+  /* Solid elevated panel — opaque counterpart to .glass for dense surfaces. */
+  .panel {
+    background-color: var(--color-surface);
+    border: 1px solid color-mix(in oklab, var(--color-border) 70%, transparent);
+    box-shadow: var(--shadow-soft), var(--shadow-inner-glow);
+  }
+
+  /* 1px translucent divider that reads on any surface. */
+  .hairline {
+    border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+  }
+
+  /* Small rounded label chip used for tags / metadata. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--color-muted);
+    background-color: color-mix(in oklab, var(--color-surface-2) 70%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-border) 55%, transparent);
+  }
+
+  /* Status dot — pair with a status color via `style` or a text-* utility. */
+  .status-dot {
+    display: inline-block;
+    height: 0.5rem;
+    width: 0.5rem;
+    border-radius: 9999px;
+    background-color: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 22%, transparent);
+  }
+
+  /* Full-bleed living-world canvas backdrop for the immersive map. */
+  .world-canvas {
+    background:
+      radial-gradient(
+        120% 90% at 50% -10%,
+        color-mix(in oklab, var(--color-brand) 16%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(
+        90% 70% at 88% 8%,
+        color-mix(in oklab, var(--color-accent) 12%, transparent),
+        transparent 50%
+      ),
+      linear-gradient(
+        180deg,
+        var(--color-world-deep),
+        var(--color-world-mid) 60%,
+        var(--color-world-deep)
+      );
+  }
+
+  /* Soft inner vignette to focus attention toward the center of a scene. */
+  .world-vignette::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 0 180px 40px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Utilities                                                                   */
+/* -------------------------------------------------------------------------- */
+@layer utilities {
+  /* Prevent typographic orphans in headings / hero copy. */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Respect reduced-motion globally for CSS-driven animation. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

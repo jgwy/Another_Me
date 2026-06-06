@@ -1,0 +1,69 @@
+{
+  "eyebrow": "Living world",
+  "title": "The 觅见 world",
+  "welcome": "Welcome to the 觅见 world",
+  "welcomeNamed": "Welcome back to the world, {{name}}.",
+  "subtitle": "Dispatch a twin and watch it think, set out, meet its kind across the world, talk, and return with what it learned.",
+  "journey": {
+    "label": "Journey",
+    "status": {
+      "idle": "Idle",
+      "thinking": "Thinking",
+      "departing": "Departing",
+      "traveling": "On the road",
+      "meeting": "Meeting",
+      "talking": "Talking",
+      "returning": "Returning",
+      "home": "Home"
+    },
+    "statusHint": {
+      "idle": "The twin is resting at home",
+      "thinking": "Reading the profile and planning this trip",
+      "departing": "Destination chosen — setting out",
+      "traveling": "Crossing the world toward the next encounter",
+      "meeting": "Ran into one of its kind",
+      "talking": "In conversation with the other twin",
+      "returning": "Heading home with what it learned",
+      "home": "Back home with what it learned"
+    },
+    "encounterStatus": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "encounter": "encounter",
+    "encounters": "encounters",
+    "encounterCount": "{{count}} encounters",
+    "currentEncounter": "Encounter {{index}}",
+    "reason": "Why here",
+    "risks": "Risks",
+    "postcardLabel": "Postcard",
+    "noActiveTrip": "No trip in progress",
+    "dispatchHint": "Dispatch a twin and let it find its own encounters out in the world.",
+    "viewTrip": "View trip"
+  },
+  "world": {
+    "ambient": "World residents",
+    "buildings": "Scenes",
+    "home": "Home",
+    "plaza": "Central plaza",
+    "openScene": "Open",
+    "focus": "Focus this encounter",
+    "spectate": "Spectate",
+    "viewReport": "View report",
+    "upcomingHint": "The twin hasn't reached this encounter yet — spectate once the journey arrives."
+  },
+  "scenarios": {
+    "exchange": "Exchange",
+    "cafe": "Café",
+    "lab": "Chemistry Lab",
+    "coding_club": "Coding Club"
+  },
+  "cta": {
+    "dispatch": "Dispatch a twin",
+    "buildTwin": "Build a twin",
+    "letAiGo": "Let the AI go find"
+  }
+}

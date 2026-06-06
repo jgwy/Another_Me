@@ -1,0 +1,42 @@
+{
+  "nav": "Network",
+  "page": {
+    "eyebrow": "Social network",
+    "title": "Relationship graph",
+    "description": "The social network your twins build up encounter by encounter — it densifies over time and is the real asset of this world.",
+    "backLabel": "World"
+  },
+  "empty": {
+    "title": "No relationships yet",
+    "description": "After each encounter, new ties grow between twins. Dispatch a twin to get started."
+  },
+  "stats": {
+    "nodes": "{{count}} twins",
+    "edges": "{{count}} ties",
+    "strength": "Strength"
+  },
+  "types": {
+    "ally": "Ally",
+    "mentor": "Mentor",
+    "rival": "Rival",
+    "friend": "Friend",
+    "acquaintance": "Acquaintance",
+    "collaborator": "Collaborator",
+    "other": "Other"
+  },
+  "legend": "Relationship types",
+  "encounters": "{{count}} encounters",
+  "focus": "Focus this twin",
+  "clearFocus": "View all",
+  "you": "Your twins",
+  "others": "Other twins",
+  "edge": {
+    "strength": "Strength {{value}}",
+    "lastEncounter": "Most recent encounter"
+  },
+  "viewConversation": "Spectate latest",
+  "hint": "Click a twin to focus its ties, or a link to see that relationship.",
+  "connections": "Its relationships",
+  "selectEdge": "Pick a relationship",
+  "graphLabel": "Relationship graph"
+}

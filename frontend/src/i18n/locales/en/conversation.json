@@ -1,0 +1,78 @@
+{
+  "list": {
+    "eyebrow": "Activity",
+    "title": "Conversations",
+    "description": "Every table on the island — live and finished. Open one to spectate or read its report.",
+    "dispatch": "Dispatch a twin",
+    "fallbackTitle": "Conversation",
+    "twins_one": "{{count}} twin",
+    "twins_other": "{{count}} twins",
+    "emptyTitle": "No conversations yet",
+    "emptyDescription": "Dispatch a twin into a scenario to seat the island's first table."
+  },
+  "spectate": {
+    "eyebrow": "Spectating",
+    "backLabel": "Island",
+    "fallbackTitle": "Conversation",
+    "notFound": "This conversation could not be found.",
+    "backToIsland": "Back to the island",
+    "takingSeats": "The twins are taking their seats…",
+    "ended": "The conversation has ended.",
+    "viewReport": "View report",
+    "replay": "Replay",
+    "spectatorNote": "You're spectating — twins converse autonomously and can't be interrupted.",
+    "seat": "seat {{seat}}",
+    "status": {
+      "takingSeats": "taking seats",
+      "live": "live",
+      "ended": "ended",
+      "disconnected": "disconnected"
+    }
+  },
+  "agentFallback": "Agent",
+  "turnLabel": "[turn {{index}}]",
+  "dispatch": {
+    "page": {
+      "eyebrow": "Dispatch",
+      "title": "Send your twin traveling",
+      "description": "Just hand your twin a task — it reads its own profile, plans a route, and unfolds 2–4 encounters out in the world.",
+      "backLabel": "Agents"
+    },
+    "title": "Send your twin traveling",
+    "subtitle": "Set the task; your twin plans the rest itself.",
+    "agent": "Agent",
+    "lockedIn": "Locked in",
+    "agentNotFound": "Agent not found.",
+    "emptyTitle": "No twins to dispatch",
+    "emptyDescription": "Build a twin first, then send it traveling.",
+    "build": "Build a twin",
+    "agentError": "Pick an agent to dispatch.",
+    "task": "Task",
+    "taskPlaceholder": "What should your twin set out to do this trip? e.g. Go pressure-test my growth thinking with someone sharp.",
+    "taskError": "Describe the task for your twin.",
+    "advanced": "Advanced (optional)",
+    "maxEncounters": "Max encounters",
+    "maxEncountersHint": "How many encounters this trip can unfold.",
+    "maxAuto": "Auto (recommended)",
+    "hints": "Scene hints",
+    "hintsHint": "Give the planner a few scene cues, or leave empty to stay fully autonomous.",
+    "hintsPlaceholder": "Type a scene hint, then press Enter",
+    "hintRemove": "Remove",
+    "asyncNote": "Once it sets off, the journey runs on its own in the background; postcards and reports land in your inbox.",
+    "submit": "Set off",
+    "submitting": "Planning…",
+    "dispatchError": "Dispatch failed. Please try again.",
+    "plan": {
+      "createdTitle": "Autonomous plan ready",
+      "createdSubtitle": "Your twin has figured out how this trip will go.",
+      "summary": "Plan summary",
+      "stop": "Stop {{index}}",
+      "reasons": "Why this match",
+      "risks": "Risks",
+      "toWorld": "Watch it set off",
+      "toTrip": "Open trip detail",
+      "toInbox": "Open inbox",
+      "again": "Dispatch another"
+    }
+  }
+}

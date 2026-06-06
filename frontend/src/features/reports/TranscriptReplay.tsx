@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Message, Participant } from "../../lib/api";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
@@ -94,8 +95,9 @@ function AgentRow({
   seat: number | undefined;
   participant: Participant | undefined;
 }) {
+  const { t } = useTranslation("conversation");
   const right = seat === 2;
-  const name = participant?.agent.name ?? "Agent";
+  const name = participant?.agent.name ?? t("agentFallback");
   const avatar = participant?.agent.avatar ?? null;
 
   return (
@@ -111,7 +113,7 @@ function AgentRow({
         <div className={cn("flex items-center gap-2", right && "flex-row-reverse")}>
           <span className="text-xs font-semibold text-ink">{name}</span>
           {message.turn_index != null && (
-            <span className="font-mono text-[11px] text-faint">[对话{message.turn_index}]</span>
+            <span className="font-mono text-[11px] text-faint">{t("turnLabel", { index: message.turn_index })}</span>
           )}
           <span className="font-mono text-[11px] text-faint">{formatTime(message.created_at)}</span>
         </div>
@@ -139,6 +141,7 @@ function SandboxBubble({
   seat: number | undefined;
   participant: Participant | undefined;
 }) {
+  const { t } = useTranslation("sandbox");
   const [open, setOpen] = useState(false);
   const meta = message.meta;
   const language = asString(meta.language) || "python";
@@ -162,10 +165,10 @@ function SandboxBubble({
         <div className="flex items-center justify-between gap-3 border-b border-border/50 bg-surface-2/70 px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-accent/15 text-[11px] text-accent">▶</span>
-            <span className="text-xs font-semibold text-ink">Sandbox · ran code</span>
-            {name && <span className="text-xs text-faint">by {name}</span>}
+            <span className="text-xs font-semibold text-ink">{t("ranCode")}</span>
+            {name && <span className="text-xs text-faint">{t("by", { name })}</span>}
           </div>
-          <Badge tone={exitCode === 0 ? "success" : "danger"}>exit {exitCode}</Badge>
+          <Badge tone={exitCode === 0 ? "success" : "danger"}>{t("exit", { code: exitCode })}</Badge>
         </div>
 
         {code && (
@@ -177,7 +180,7 @@ function SandboxBubble({
             >
               <span className="font-mono">{language}</span>
               <span className="flex items-center gap-1.5">
-                {open ? "Hide code" : "Show code"}
+                {open ? t("hideCode") : t("showCode")}
                 <ChevronIcon open={open} />
               </span>
             </button>
@@ -197,20 +200,20 @@ function SandboxBubble({
         )}
 
         <div className="px-4 py-3">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-faint">stdout</span>
+          <span className="text-[11px] font-medium uppercase tracking-wider text-faint">{t("stdout")}</span>
           <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-accent">
             {stdout}
           </pre>
           {stderr && (
             <>
-              <span className="mt-3 block text-[11px] font-medium uppercase tracking-wider text-faint">stderr</span>
+              <span className="mt-3 block text-[11px] font-medium uppercase tracking-wider text-faint">{t("stderr")}</span>
               <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-danger">
                 {stderr}
               </pre>
             </>
           )}
           <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-faint">
-            <span>exit {exitCode}</span>
+            <span>{t("exit", { code: exitCode })}</span>
             <span>·</span>
             <span>{durationMs}ms</span>
           </div>
@@ -260,6 +263,7 @@ export function TranscriptReplay({
   messages: Message[];
   participants: Participant[];
 }) {
+  const { t } = useTranslation("reports");
   const sorted = useMemo(() => [...messages].sort((a, b) => a.seq - b.seq), [messages]);
   const seatByAgent = useMemo(() => {
     const map = new Map<string, number>();
@@ -294,8 +298,8 @@ export function TranscriptReplay({
     return (
       <EmptyState
         icon="💬"
-        title="No transcript yet"
-        description="Messages will appear here once the conversation has run."
+        title={t("replay.emptyTitle")}
+        description={t("replay.emptyDescription")}
       />
     );
   }
@@ -338,7 +342,7 @@ export function TranscriptReplay({
           <div className="flex items-center gap-2">
             {!replaying ? (
               <Button size="sm" onClick={startReplay} leftIcon={<PlayIcon />}>
-                Replay
+                {t("replay.replay")}
               </Button>
             ) : (
               <>
@@ -348,13 +352,13 @@ export function TranscriptReplay({
                   onClick={togglePlay}
                   leftIcon={finished ? <RestartIcon /> : playing ? <PauseIcon /> : <PlayIcon />}
                 >
-                  {finished ? "Replay" : playing ? "Pause" : "Play"}
+                  {finished ? t("replay.replay") : playing ? t("replay.pause") : t("replay.play")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={restart} leftIcon={<RestartIcon />}>
-                  Restart
+                  {t("replay.restart")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={showAll}>
-                  Show all
+                  {t("replay.showAll")}
                 </Button>
               </>
             )}

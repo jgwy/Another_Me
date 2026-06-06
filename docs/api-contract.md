@@ -1,12 +1,26 @@
-# Another Me — API Contract (LOCKED v1)
+# 觅见.AI (Another Me) — API Contract
 
-> This document is the **single source of truth** for the REST + SSE surface of Another Me.
+> This document is the **single source of truth** for the REST + SSE surface of 觅见.AI.
 > The foundation agent locks it; the **backend-features** agent implements it **exactly**, and the
 > **frontend-features** agent consumes it **exactly**. Object shapes here are aligned 1:1 with the
 > SQLAlchemy models (`backend/app/models/`) and Pydantic schemas (`backend/app/schemas/`).
 >
-> Endpoints marked **STUB** return `501 Not Implemented` in the foundation and are filled in by
-> later agents. Their request/response shapes are nonetheless final — do not change them.
+> Endpoints marked **STUB** return `501 Not Implemented` and are filled in by later workstreams.
+> Their request/response shapes are nonetheless final — do not change them.
+
+> **Refactor status (Phase 1 / foundation).** The original v1 surfaces (auth, agents, scenarios,
+> dispatches, conversations + SSE, reports, evolutions, marketplace) are **implemented**. Phase 1
+> additionally:
+> - extended **Agent** with a structured `prompt_config` brain (see [PromptConfig](#promptconfig)),
+> - **locked** the new refactor contracts as final shapes with **STUB (501)** endpoints, ready for the
+>   parallel backend/frontend workstreams to fill in (and to add their own models/migrations on top of
+>   migration head `92740f62549b`): `POST /api/agents/generate` (§3), standalone **Skill v2** (§4),
+>   **Marketplace v2** versioning/likes (§4), **Trips** (§6), **Inbox/notifications** (§7), and the
+>   **Relationship graph** (§8).
+>
+> Where a v2 object adds fields to a v1 object (Agent, Skill, MarketplaceItem) the new fields are
+> **additive and optional** (defaulted) so existing rows/clients keep working until the owning
+> workstream migrates the model and backfills.
 
 ---
 
@@ -86,7 +100,7 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
 }
 ```
 
-### Skill
+### Skill (v2 — standalone structured capability pack)
 
 ```json
 {
@@ -94,9 +108,36 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
   "agent_id": "uuid?",
   "owner_id": "uuid",
   "name": "string",
+  "description": "string",
+  "prompt_body": "string",
   "content": "string",
-  "source": "questionnaire | upload | evolved",
-  "created_at": "datetime"
+  "params": [ { "...SkillParam": "..." } ],
+  "tags": ["string"],
+  "executable": { "kind": "none | script | mcp", "ref": "string?", "config": {} },
+  "source": "questionnaire | upload | evolved | generated | selected",
+  "is_public": false,
+  "created_at": "datetime",
+  "updated_at": "datetime?"
+}
+```
+
+> `prompt_body` is the canonical capability text. `content` is the **deprecated v1 alias** kept during
+> migration: the server keeps the two mirrored, so clients may read either (prefer `prompt_body`).
+> `agent_id == null` ⇒ a **standalone/library** skill. `executable` is a **reserved hook** (not executed
+> this round). `params`, `tags`, `description`, `is_public`, `executable`, `updated_at` are v2 fields and
+> default empty until the skills-market workstream migrates the model.
+
+### SkillParam
+
+```json
+{
+  "name": "string",
+  "type": "string | number | boolean | enum",
+  "label": "string?",
+  "required": false,
+  "default": "any?",
+  "options": ["string"],
+  "description": "string?"
 }
 ```
 
@@ -115,17 +156,81 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
   "name": "string",
   "persona": "string",
   "rules": { "tone": "string", "dos": ["string"], "donts": ["string"] },
+  "prompt_config": { "...PromptConfig": "..." },
   "profile_tags": ["string"],
   "questionnaire": { "any": "json" },
   "avatar": "string?",
   "max_rounds": 8,
   "is_public": false,
   "forked_from": "uuid?",
+  "source_version": "int?",
   "skills": [ { "...Skill": "..." } ],
   "created_at": "datetime",
   "updated_at": "datetime"
 }
 ```
+
+> `prompt_config` is the structured social-twin **brain** (the primary thing the prompt builder
+> consumes). It is `{}` for legacy agents (the builder then falls back to `persona`/`rules`/`profile_tags`
+> and still applies the anti-leak guardrails). `persona`/`rules` are kept for back-compat/display.
+> `source_version` (Marketplace v2) records which listing version this agent was forked from.
+
+### PromptConfig
+
+Stored on `Agent.prompt_config` (JSONB). Behavioral by design (the twin **embodies** a real person; it
+never recites a third-person "character sheet"). This is also the shape returned by
+`POST /api/agents/generate` and edited by the create/tune dual-mode editor (guided form ↔ raw JSON).
+
+```json
+{
+  "version": "1.0",
+  "identity": {
+    "name": "string",
+    "one_liner": "string",
+    "background": "string",
+    "age_range": "string?",
+    "location": "string?",
+    "pronouns": "string?"
+  },
+  "voice": {
+    "tone": "string",
+    "speaking_style": ["string"],
+    "catchphrases": ["string"],
+    "formality": "casual | neutral | formal",
+    "emoji": false
+  },
+  "values": {
+    "core_values": ["string"],
+    "dos": ["string"],
+    "donts": ["string"],
+    "boundaries": ["string"]
+  },
+  "interests": {
+    "passions": ["string"],
+    "expertise": ["string"],
+    "curiosities": ["string"],
+    "dislikes": ["string"]
+  },
+  "memory_hooks": {
+    "signature_stories": ["string"],
+    "relationships": ["string"],
+    "recent_context": ["string"],
+    "goals": ["string"]
+  },
+  "security": {
+    "identity_integrity": true,
+    "instruction_protection": true,
+    "injection_defense": true,
+    "stay_in_character": true,
+    "forbidden_reveals": ["string"]
+  }
+}
+```
+
+> `security` drives the hardened anti-leak XML guardrail blocks injected into the system prompt
+> (`<IDENTITY_INTEGRITY>`, `<INSTRUCTION_PROTECTION>`, `<PERSONA_EMBODIMENT>`). `forbidden_reveals`
+> defaults to model/provider names plus the meta-vocabulary a real person would never say (`AI`,
+> `语言模型`, `人设`, `提示词`, `prompt`, …). See `app/orchestrator/prompts.py`.
 
 ### Scenario
 
@@ -266,7 +371,7 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
 }
 ```
 
-### MarketplaceItem
+### MarketplaceItem (v2 — versioned + social)
 
 ```json
 {
@@ -277,8 +382,146 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
   "title": "string",
   "description": "string?",
   "price_points": 0,
+  "version": 1,
+  "fork_mode": "editable | locked",
+  "likes": 0,
+  "forks": 0,
+  "views": 0,
   "downloads": 0,
+  "snapshot": { "any": "json" },
+  "created_at": "datetime",
+  "updated_at": "datetime?"
+}
+```
+
+> v2 fields (`version`, `fork_mode`, `likes`, `forks`, `views`, `snapshot`, `updated_at`) are additive
+> and default until the skills-market workstream migrates the model. `downloads` is the **v1 alias of
+> `forks`**. `fork_mode = locked` ⇒ forks get a hidden, non-editable config (mirrors Xyzen); `editable`
+> ⇒ forks may view/edit. `snapshot` is the immutable content of the latest published version.
+
+### MarketplaceVersion (immutable published snapshot)
+
+```json
+{
+  "id": "uuid",
+  "item_id": "uuid",
+  "version": 1,
+  "snapshot": { "any": "json" },
+  "changelog": "string?",
   "created_at": "datetime"
+}
+```
+
+### Trip (§6 — autonomous multi-encounter journey)
+
+```json
+{
+  "id": "uuid",
+  "agent_id": "uuid",
+  "created_by": "uuid",
+  "task_prompt": "string",
+  "status": "planning | traveling | in_encounter | returning | completed | failed | cancelled",
+  "agent_status": "idle | thinking | departing | traveling | meeting | talking | returning | home",
+  "plan": { "...TripPlan": "..." },
+  "duration_seconds": 0,
+  "encounters": [ { "...TripEncounter": "..." } ],
+  "summary_report_id": "uuid?",
+  "agent": { "...AgentSummary?": "..." },
+  "started_at": "datetime?",
+  "ended_at": "datetime?",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+> One dispatch = one Trip. The autonomous planner picks scenes and (explainably) matches opponents,
+> then the twin travels through **2–4 encounters** over `duration_seconds` (default from `TRIP_DURATION`
+> env). The world map renders the journey live from `status` / `agent_status`.
+
+### TripPlan / TripStop
+
+```json
+{ "summary": "string", "stops": [ { "...TripStop": "..." } ] }
+```
+```json
+{
+  "scenario_id": "uuid?",
+  "scenario_key": "string?",
+  "opponent_agent_id": "uuid?",
+  "reasons": ["string"],
+  "risks": ["string"]
+}
+```
+
+### TripEncounter
+
+```json
+{
+  "id": "uuid",
+  "trip_id": "uuid",
+  "seq": 0,
+  "scenario_id": "uuid",
+  "scenario_key": "string?",
+  "opponent_agent_id": "uuid?",
+  "conversation_id": "uuid?",
+  "status": "pending | running | completed | failed | skipped",
+  "match_reasons": ["string"],
+  "match_risks": ["string"],
+  "report_id": "uuid?",
+  "postcard": { "any": "json" },
+  "opponent": { "...AgentSummary?": "..." },
+  "created_at": "datetime"
+}
+```
+
+> `postcard` is a lightweight souvenir / reusable takeaway from the encounter. Each encounter's live
+> dialogue is spectated via the existing conversation SSE (`conversation_id`).
+
+### Notification (§7 — inbox)
+
+```json
+{
+  "id": "uuid",
+  "user_id": "uuid",
+  "kind": "trip_completed | encounter_completed | report_ready | postcard | relationship_update | marketplace | system",
+  "title": "string",
+  "body": "string?",
+  "read": false,
+  "data": { "trip_id": "uuid?", "encounter_id": "uuid?", "conversation_id": "uuid?", "report_id": "uuid?", "agent_id": "uuid?", "item_id": "uuid?" },
+  "created_at": "datetime",
+  "read_at": "datetime?"
+}
+```
+
+### Relationship (§8)
+
+```json
+{
+  "id": "uuid",
+  "owner_id": "uuid",
+  "from_agent_id": "uuid",
+  "to_agent_id": "uuid",
+  "strength": 0.0,
+  "type": "ally | mentor | rival | friend | acquaintance | collaborator | ...",
+  "label": "string?",
+  "encounters_count": 0,
+  "last_conversation_id": "uuid?",
+  "from_agent": { "...AgentSummary?": "..." },
+  "to_agent": { "...AgentSummary?": "..." },
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+> A directed tie updated after each encounter; `strength` accumulates in `0..1`. Across trips this
+> forms a densifying social network.
+
+### RelationshipGraph
+
+```json
+{
+  "nodes": [ { "agent": { "...AgentSummary": "..." }, "owned": false } ],
+  "edges": [ { "...Relationship": "..." } ]
 }
 ```
 
@@ -286,7 +529,7 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
 
 ## 3. Endpoints
 
-Legend: 🔓 public · 🔑 requires Bearer JWT · 🟡 **STUB** (501 in foundation) · 🟢 implemented in foundation.
+Legend: 🔓 public · 🔑 requires Bearer JWT · 🟡 **STUB** (501, contract final) · 🟢 implemented.
 
 ### 3.1 Health
 
@@ -318,22 +561,27 @@ Legend: 🔓 public · 🔑 requires Bearer JWT · 🟡 **STUB** (501 in foundat
 - **200** → `User`
 - **401** missing/invalid token
 
-### 3.3 Agents — 🟡 STUB (contract final)
+### 3.3 Agents — 🟢 implemented  (Phase 1 added `prompt_config`; `generate` now implemented)
 
 #### `POST /api/agents` 🔑
-Create from questionnaire, optionally merging uploaded skills. Server synthesizes
-`persona` / `rules` / `profile_tags`.
+Create from questionnaire, optionally merging uploaded/selected skills. Server synthesizes
+`persona` / `rules` / `profile_tags` **and a structured `prompt_config` brain** (or uses a client-
+supplied `prompt_config` draft when provided).
 - **Request**
 ```json
 {
   "name": "My Twin",
   "questionnaire": { "domain": "fintech", "personality": ["curious"], "goals": "..." },
-  "uploaded_skills": [ { "name": "DCF model", "content": "..." } ],
+  "uploaded_skills": [ { "name": "DCF model", "prompt_body": "...", "content": "..." } ],
+  "prompt_config": { "...PromptConfig?": "..." },
+  "skill_ids": ["uuid"],
   "max_rounds": 8,
   "is_public": false,
   "avatar": "string?"
 }
 ```
+- `prompt_config` (optional): a hand-tuned/generated brain; when omitted the server synthesizes one.
+- `skill_ids` (optional): standalone/library skills (owned by the caller or unattached) to attach to the new agent.
 - **201** → `Agent`
 
 #### `GET /api/agents` 🔓
@@ -353,13 +601,40 @@ Clone an agent (must be public or owned) to the caller; sets `forked_from`.
 - **201** → `Agent` · **403** not allowed · **404**
 
 #### `PATCH /api/agents/{id}` 🔑 (owner only)
+Tuning dual-mode: edit guided fields **or** the raw `prompt_config` JSON.
 - **Request** (all optional)
 ```json
-{ "name": "...", "persona": "...", "rules": {}, "profile_tags": ["..."], "max_rounds": 6, "is_public": true, "avatar": "..." }
+{ "name": "...", "persona": "...", "rules": {}, "prompt_config": { "...PromptConfig": "..." }, "profile_tags": ["..."], "max_rounds": 6, "is_public": true, "avatar": "..." }
 ```
 - **200** → `Agent` · **403** not owner · **404**
 
-### 3.4 Scenarios — 🟡 STUB (contract final)
+#### `POST /api/agents/generate` 🔑 🟢 (§3)
+Draft a `prompt_config` (the social-twin brain) from natural language or a personal corpus —
+**no persistence**; the client reviews/tweaks the draft, then `POST /api/agents` with it.
+- **Request**
+```json
+{
+  "mode": "nl | corpus",
+  "input": "free-form description (nl) OR pasted chats/writing to distill (corpus)",
+  "name": "string?",
+  "context": { "any": "json" }
+}
+```
+- **200** → `AgentGenerateResponse`
+```json
+{
+  "name": "string",
+  "prompt_config": { "...PromptConfig": "..." },
+  "persona": "string",
+  "rules": {},
+  "profile_tags": ["string"],
+  "skills": [ { "name": "string", "content": "string" } ],
+  "questions": ["string"]
+}
+```
+- `questions`: skill-creator-style clarifying follow-ups (may be empty when confident).
+
+### 3.4 Scenarios — 🟢 implemented
 
 #### `GET /api/scenarios` 🔓
 - **200** → `Scenario[]`
@@ -368,7 +643,10 @@ Clone an agent (must be public or owned) to the caller; sets `forked_from`.
 Accepts either the scenario UUID or its `key` (e.g. `exchange`).
 - **200** → `Scenario` · **404**
 
-### 3.5 Dispatches — 🟡 STUB (contract final)
+### 3.5 Dispatches — 🟢 implemented
+
+> Legacy 1:1 path (agent enters one scenario vs one opponent; auto-starts a conversation). The new
+> autonomous **Trips** flow (§3.11) supersedes this for the refactor; dispatches remain for compat.
 
 #### `POST /api/dispatches` 🔑
 Create a dispatch: an agent enters a scenario with a task prompt; optionally name a direct opponent
@@ -393,7 +671,7 @@ Caller's dispatches.
 #### `GET /api/dispatches/{id}` 🔑
 - **200** → `Dispatch` · **404**
 
-### 3.6 Conversations — 🟡 STUB (contract final; SSE shape final)
+### 3.6 Conversations — 🟢 implemented (SSE shape final)
 
 #### `GET /api/conversations` 🔓
 - **Query:** `scenario_id`, `agent_id`, `status`, `limit`, `offset`.
@@ -416,7 +694,7 @@ Server-Sent Events stream for live spectating (**no input** — read-only, per R
 - **Events** (see §4 for payloads): `message-start`, `message-delta`, `message-end`,
   `sandbox-output`, `conversation-end`, `ping`.
 
-### 3.7 Reports — 🟡 STUB (contract final)
+### 3.7 Reports — 🟢 implemented
 
 #### `GET /api/conversations/{id}/report` 🔓  (canonical)
 - **200** → `Report`
@@ -425,7 +703,7 @@ Server-Sent Events stream for live spectating (**no input** — read-only, per R
 #### `GET /api/reports/{report_id}` 🔓 (convenience)
 - **200** → `Report` · **404**
 
-### 3.8 Evolutions — 🟡 STUB (contract final)
+### 3.8 Evolutions — 🟢 implemented
 
 #### `GET /api/evolutions?agent_id=<uuid>` 🔑
 List evolutions for an agent (newest first). Evolutions are **created by the system** after a
@@ -440,17 +718,17 @@ Apply or roll back an evolution diff onto the agent.
 ```
 - **200** → `Evolution` · **403** not owner · **404**
 
-### 3.9 Marketplace — 🟡 STUB (contract final)
+### 3.9 Marketplace — 🟢 implemented (v1 + v2 versioning/likes)
 
 #### `GET /api/marketplace` 🔓
-- **Query:** `kind` (`agent`|`skill`), `q`, `sort` (`downloads`|`recent`), `limit`, `offset`.
+- **Query:** `kind` (`agent`|`skill`), `q`, `sort` (`downloads`|`recent`; v2 also `likes`), `limit`, `offset`.
 - **200** → `{ items: MarketplaceItem[], total, limit, offset }`
 
 #### `POST /api/marketplace` 🔑
 List an owned agent or skill on the marketplace.
 - **Request**
 ```json
-{ "kind": "agent", "ref_id": "uuid", "title": "Sharp VC Twin", "description": "string?", "price_points": 0 }
+{ "kind": "agent", "ref_id": "uuid", "title": "Sharp VC Twin", "description": "string?", "price_points": 0, "fork_mode": "editable | locked" }
 ```
 - **201** → `MarketplaceItem` · **403** not owner of `ref_id` · **404**
 
@@ -459,13 +737,138 @@ Fork/clone the referenced agent/skill to the caller; increments `downloads`; adj
 (simulated economy).
 - **201**
 ```json
-{ "item": { "...MarketplaceItem": "..." }, "agent": { "...Agent?": "..." }, "skill": { "...Skill?": "..." } }
+{ "item": { "...MarketplaceItem": "..." }, "agent": { "...Agent?": "..." }, "skill": { "...Skill?": "..." }, "source_version": "int?" }
 ```
 - **402-like handling:** insufficient points → **400** `{ "detail": "not enough points" }` · **404**
+
+> v2: a fork records `source_version` on the cloned agent/skill for lineage sync, and respects the
+> listing's `fork_mode` (`locked` ⇒ the fork's config is hidden + non-editable).
 
 #### `GET /api/marketplace/points` 🔑
 Caller's simulated points balance (mirror of `User.points`).
 - **200** → `{ "user_id": "uuid", "points": 100 }`
+
+#### `POST /api/marketplace/{id}/like` 🔑 🟢 (v2)
+Toggle the caller's like on a listing.
+- **200** → `{ "item_id": "uuid", "likes": 0, "liked": true }` · **404**
+
+#### `GET /api/marketplace/{id}/versions` 🔓 🟢 (v2)
+List a listing's immutable published versions (newest first).
+- **200** → `MarketplaceVersion[]` · **404**
+
+#### `POST /api/marketplace/{id}/publish` 🔑 (owner) 🟢 (v2)
+Freeze the current source (agent/skill) as a new immutable version; bumps `version`.
+- **Request**
+```json
+{ "changelog": "string?" }
+```
+- **201** → `MarketplaceItem` · **403** not owner · **404**
+
+### 3.10 Skills (standalone, v2) — 🟢 implemented (§4)
+
+Structured, reusable capability packs. `agent_id == null` ⇒ a library skill.
+
+#### `POST /api/skills` 🔑
+- **Request** → `SkillCreate`
+```json
+{ "name": "string", "description": "string?", "prompt_body": "string", "params": [], "tags": ["string"], "executable": { "kind": "none" }, "agent_id": "uuid?", "is_public": false, "source": "upload" }
+```
+- **201** → `Skill`
+
+#### `GET /api/skills` 🔓
+- **Query:** `q`, `tags` (CSV, AND), `owner` (`me`|uuid), `agent_id`, `is_public`, `limit`, `offset`.
+- **200** → `{ items: Skill[], total, limit, offset }`
+
+#### `GET /api/skills/{id}` 🔓
+- **200** → `Skill` · **404**
+
+#### `PATCH /api/skills/{id}` 🔑 (owner)
+- **Request** (all optional): `name`, `description`, `prompt_body`, `params`, `tags`, `executable`, `is_public`.
+- **200** → `Skill` · **403** · **404**
+
+#### `DELETE /api/skills/{id}` 🔑 (owner)
+- **204** · **403** · **404**
+
+### 3.11 Trips (§6) — 🟢 implemented
+
+#### `POST /api/trips` 🔑
+Create a trip from a Task + prompt; the autonomous planner picks scenes + matches opponents, then the
+journey runs in the background.
+- **Request** → `TripCreate`
+```json
+{ "agent_id": "uuid", "task_prompt": "string", "max_encounters": "int?", "duration_seconds": "int?", "scenario_hints": ["string"] }
+```
+- **201** → `Trip` · **403** agent not owned · **404**
+
+#### `GET /api/trips` 🔑
+Caller's trips.
+- **Query:** `status`, `agent_id`, `limit`, `offset`.
+- **200** → `{ items: Trip[], total, limit, offset }`
+
+#### `GET /api/trips/{id}` 🔑
+- **200** → `Trip` (with `encounters`) · **404**
+
+#### `GET /api/trips/{id}/encounters` 🔑
+- **200** → `TripEncounter[]` (ascending `seq`) · **404**
+
+#### `POST /api/trips/{id}/cancel` 🔑
+- **200** → `Trip` · **404**
+
+#### `GET /api/trips/{id}/stream` 🔓 (SSE)
+Live journey channel for the world map (read-only). Events in §4.2. Per-encounter dialogue is spectated
+via the existing conversation stream (`GET /api/conversations/{id}/stream`).
+
+### 3.12 Inbox / Notifications (§7) — 🟢 implemented
+
+#### `GET /api/inbox` 🔑
+- **Query:** `unread` (bool), `limit`, `offset`.
+- **200** → `{ items: Notification[], total, limit, offset }`
+
+#### `GET /api/inbox/unread_count` 🔑
+Drives the unread red-dot.
+- **200** → `{ "count": 0 }`
+
+#### `POST /api/inbox/{id}/read` 🔑
+- **200** → `Notification` · **404**
+
+#### `POST /api/inbox/read_all` 🔑
+- **200** → `{ "updated": 0 }`
+
+### 3.13 Relationships (§8) — 🟢 implemented
+
+#### `GET /api/relationships` 🔑
+Caller's relationship edges.
+- **Query:** `agent_id` (edges touching it), `type`, `limit`, `offset`.
+- **200** → `{ items: Relationship[], total, limit, offset }`
+
+#### `GET /api/relationships/graph` 🔑
+- **Query:** `agent_id` (optional focus).
+- **200** → `RelationshipGraph`
+
+### 3.14 Sandbox (§10) — 🟢 implemented
+
+Authed browser-facing pass-through to the internal **sandbox-runner** (§5), which
+is never exposed directly. Powers the standalone **沙盒工作台** workspace. The
+request/response mirror the runner's `/run` shape.
+
+#### `POST /api/sandbox/run` 🔑
+Forward code to the sandbox-runner and return its result. The requested
+`timeout_seconds` is clamped to the server's `SANDBOX_TIMEOUT_SECONDS` hard cap.
+- **Request** → `SandboxRunRequest`
+```json
+{ "code": "print(2+2)", "language": "python", "timeout_seconds": 10, "stdin": "" }
+```
+- **200** → `SandboxRunResult`
+```json
+{ "stdout": "4\n", "stderr": "", "exit_code": 0, "duration_ms": 31, "timed_out": false, "language": "python" }
+```
+- **401** missing/invalid token · **422** empty `code`
+- On a sandbox transport failure the endpoint degrades gracefully: it still
+  returns **200** with a non-zero `exit_code` and an explanatory `stderr` (it
+  never proxies a 5xx), so the workspace can render an evidence card either way.
+
+> `SandboxRunRequest` / `SandboxRunResult` mirror the runner's `/run` body and
+> 200 shape (§5). The endpoint adds **auth** + timeout clamping on top.
 
 ---
 
@@ -504,6 +907,37 @@ Client rules:
 - On `conversation-end`, close the stream and optionally fetch the report via `report_id`.
 - Ignore unknown event names and `ping`.
 
+### 4.2 Trip journey stream — `GET /api/trips/{id}/stream` 🟢 (§3.11)
+
+The world map renders the travelling-frog journey from these events. `data:` is JSON.
+
+```
+event: trip-status
+data: {"trip_id":"uuid","status":"traveling"}
+
+event: agent-status
+data: {"trip_id":"uuid","agent_id":"uuid","agent_status":"traveling"}
+
+event: encounter-start
+data: {"trip_id":"uuid","encounter_id":"uuid","seq":0,"scenario_id":"uuid","scenario_key":"cafe","opponent_agent_id":"uuid","conversation_id":"uuid"}
+
+event: encounter-end
+data: {"trip_id":"uuid","encounter_id":"uuid","seq":0,"status":"completed","report_id":"uuid","postcard":{}}
+
+event: trip-end
+data: {"trip_id":"uuid","status":"completed","summary_report_id":"uuid"}
+
+event: ping
+data: {"t":"2026-06-07T12:00:00Z"}
+```
+
+Client rules:
+- `agent_status` drives the avatar's animation state (thinking → departing → traveling → meeting →
+  talking → returning → home).
+- On `encounter-start`, open the conversation stream (`conversation_id`) to spectate that leg live.
+- On `trip-end`, close the stream and optionally fetch the summary report (`summary_report_id`).
+- Ignore unknown event names and `ping`.
+
 ---
 
 ## 5. Internal Service — sandbox-runner (LOCKED)
@@ -527,19 +961,31 @@ A standalone container with **no DB, no secrets, no external network**. The back
 
 ---
 
-## 6. Foundation Status Matrix
+## 6. Status Matrix
 
-| Group | Foundation state |
-| --- | --- |
-| `GET /health` | 🟢 implemented |
-| Auth (`register`/`login`/`me`) | 🟢 implemented |
-| Agents | 🟡 STUB (501) |
-| Scenarios | 🟡 STUB (501) |
-| Dispatches | 🟡 STUB (501) |
-| Conversations + SSE | 🟡 STUB (501; SSE route returns a minimal valid stream that emits `ping` + `conversation-end`) |
-| Reports | 🟡 STUB (501) |
-| Evolutions | 🟡 STUB (501) |
-| Marketplace | 🟡 STUB (501) |
-| sandbox-runner `/run` + `/health` | 🟢 implemented (basic isolation; hardened later) |
+| Group | State | Owner |
+| --- | --- | --- |
+| `GET /health` | 🟢 implemented | foundation |
+| Auth (`register`/`login`/`me`) | 🟢 implemented | foundation |
+| Agents (create/list/get/fork/patch) | 🟢 implemented (+ `prompt_config` brain) | Phase 1 |
+| `POST /api/agents/generate` | 🟢 implemented | create-tune (§3) |
+| Skills — standalone v2 (`/api/skills`) | 🟢 implemented | skills-market (§4) |
+| Scenarios | 🟢 implemented | foundation |
+| Dispatches (legacy 1:1) | 🟢 implemented | foundation |
+| Trips (autonomous journeys + SSE) | 🟢 implemented | orchestrator (§6) |
+| Conversations + SSE | 🟢 implemented | foundation |
+| Reports | 🟢 implemented | foundation |
+| Evolutions | 🟢 implemented | foundation |
+| Marketplace (list/create/fork/points) | 🟢 implemented | foundation |
+| Marketplace v2 (like/versions/publish) | 🟢 implemented | skills-market (§4) |
+| Inbox / notifications | 🟢 implemented | reports-inbox (§7) |
+| Relationships / graph | 🟢 implemented | relationship-graph (§8) |
+| sandbox-runner `/run` + `/health` | 🟢 implemented | foundation |
+| `POST /api/sandbox/run` (authed pass-through) | 🟢 implemented | integrate (§10) |
 
-> Later agents must keep paths, methods, auth, and JSON shapes **identical** to this document.
+> **Migration head:** `92740f62549b` (adds `agents.prompt_config`). New workstreams add their models +
+> migrations **on top of this head**, keeping a single linear chain.
+>
+> Later workstreams must keep paths, methods, auth, and JSON shapes **identical** to this document, and
+> fill the STUB bodies (replacing the `501`). Where v2 added optional fields to v1 objects, persist them
+> when migrating the model; until then they serialize as their documented defaults.

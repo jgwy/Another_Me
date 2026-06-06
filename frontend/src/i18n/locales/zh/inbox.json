@@ -1,0 +1,44 @@
+{
+  "nav": "信箱",
+  "page": {
+    "eyebrow": "信箱",
+    "title": "信箱",
+    "description": "你的分身从世界带回的明信片、邂逅分报告与旅行总报告，都会寄到这里。",
+    "backLabel": "世界"
+  },
+  "filters": {
+    "all": "全部",
+    "unread": "未读"
+  },
+  "actions": {
+    "markAllRead": "全部已读",
+    "markRead": "标记已读",
+    "view": "查看"
+  },
+  "empty": {
+    "title": "信箱是空的",
+    "description": "派出一个分身，它回来时会往这里寄明信片与报告。",
+    "unreadTitle": "没有未读",
+    "unreadDescription": "所有消息都读过了。"
+  },
+  "unreadBadge": "{{count}} 未读",
+  "unreadLine": "{{count}} 条未读",
+  "kind": {
+    "trip_completed": "旅行归来",
+    "encounter_completed": "邂逅完成",
+    "report_ready": "报告就绪",
+    "postcard": "明信片",
+    "relationship_update": "关系更新",
+    "marketplace": "市场",
+    "system": "系统"
+  },
+  "open": {
+    "report": "查看报告",
+    "conversation": "围观对话",
+    "trip": "查看旅行",
+    "agent": "查看分身",
+    "relationships": "查看关系图谱",
+    "marketplace": "查看市场"
+  },
+  "loadMore": "加载更多"
+}

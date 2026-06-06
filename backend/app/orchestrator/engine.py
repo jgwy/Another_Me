@@ -142,10 +142,26 @@ async def manual_start(
     return convo
 
 
-async def run_conversation(conversation_id: uuid.UUID) -> None:
+async def run_conversation(
+    conversation_id: uuid.UUID,
+    *,
+    task_prompt: str | None = None,
+    dispatched_agent_id: uuid.UUID | None = None,
+) -> None:
+    """Run a conversation to completion.
+
+    ``task_prompt`` / ``dispatched_agent_id`` let a caller (e.g. the trip engine)
+    drive the turn without a :class:`Dispatch` row; when omitted they are derived
+    from a Dispatch linked to the conversation (legacy path). Trips ``await`` this
+    directly so each encounter finishes before the next leg begins.
+    """
     async with _semaphore_for_loop():
         try:
-            await _run(conversation_id)
+            await _run(
+                conversation_id,
+                task_prompt=task_prompt,
+                dispatched_agent_id=dispatched_agent_id,
+            )
         except Exception:  # noqa: BLE001
             logger.exception("conversation %s failed", conversation_id)
             await _mark_failed(conversation_id)
@@ -180,7 +196,12 @@ async def _add_message(
     return msg
 
 
-async def _run(conversation_id: uuid.UUID) -> None:
+async def _run(
+    conversation_id: uuid.UUID,
+    *,
+    task_prompt: str | None = None,
+    dispatched_agent_id: uuid.UUID | None = None,
+) -> None:
     settings = get_settings()
     cid = str(conversation_id)
     async with async_session_maker() as session:
@@ -217,11 +238,17 @@ async def _run(conversation_id: uuid.UUID) -> None:
         convo.status = "running"
         convo.started_at = _now()
 
+        # Task + dispatched twin come from the caller (trip engine) when provided,
+        # else from a Dispatch linked to this conversation (legacy 1:1 path).
         dispatch = await session.scalar(
             select(Dispatch).where(Dispatch.conversation_id == conversation_id)
         )
-        task_prompt = dispatch.task_prompt if dispatch else ""
-        dispatched_agent_id = dispatch.agent_id if dispatch else agent1.id
+        effective_task = task_prompt if task_prompt is not None else (
+            dispatch.task_prompt if dispatch else ""
+        )
+        effective_dispatched_id = dispatched_agent_id if dispatched_agent_id is not None else (
+            dispatch.agent_id if dispatch else agent1.id
+        )
         if dispatch is not None:
             dispatch.status = "running"
         await session.commit()
@@ -278,7 +305,7 @@ async def _run(conversation_id: uuid.UUID) -> None:
                 acting,
                 scenario,
                 opponent_name=opponent_name,
-                task_prompt=task_prompt,
+                task_prompt=effective_task,
                 ending_active=step.ending_active,
                 can_run_code=can_run_code,
                 history=history,
@@ -294,7 +321,7 @@ async def _run(conversation_id: uuid.UUID) -> None:
                 can_run_code=can_run_code,
                 encourage_code=encourage_code,
                 has_evidence=has_evidence,
-                task_prompt=task_prompt,
+                task_prompt=effective_task,
             )
 
             message_id = uuid.uuid4()
@@ -418,7 +445,7 @@ async def _run(conversation_id: uuid.UUID) -> None:
         await session.commit()
 
         report = await generate_report(session, convo, scenario, [agent1, agent2], history)
-        dispatched = agent2 if dispatched_agent_id == agent2.id else agent1
+        dispatched = agent2 if effective_dispatched_id == agent2.id else agent1
         await generate_evolution(session, dispatched, convo, scenario)
         await session.commit()
 

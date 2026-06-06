@@ -51,3 +51,52 @@ export const bubbleIn: Variants = {
   hidden: { opacity: 0, y: 10, scale: 0.98 },
   show: { opacity: 1, y: 0, scale: 1, transition: spring.soft },
 };
+
+/* -------------------------------------------------------------------------- */
+/* Living-world / travel-frog motion language                                  */
+/* Everything below animates transform/opacity only, so the immersive map      */
+/* holds 60fps (SC1). Use these presets in features/island.                    */
+/* -------------------------------------------------------------------------- */
+
+/** Eased keyframe transition for a token walking a multi-point path. */
+export function travel(durationSec: number, times?: number[]): Transition {
+  return { duration: durationSec, times, ease: "easeInOut", repeat: 0 };
+}
+
+/** Looping ambient drift for NPC residents milling about the world. */
+export function wander(durationSec: number, delay = 0): Transition {
+  return { duration: durationSec, delay, ease: "easeInOut", repeat: Infinity, repeatType: "loop" };
+}
+
+/** Gentle vertical bob (buildings, idle avatars). Pass a phase to desync. */
+export function bob(durationSec = 5.5, delay = 0): Transition {
+  return { duration: durationSec, delay, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" };
+}
+
+/** Soft breathing scale used for "thinking" / live pulses. */
+export const breathe: Transition = {
+  duration: 2.2,
+  ease: "easeInOut",
+  repeat: Infinity,
+  repeatType: "mirror",
+};
+
+/** Expanding ripple (sonar) — pair with scale/opacity keyframes. */
+export const ripple: Transition = {
+  duration: 2.6,
+  ease: "easeOut",
+  repeat: Infinity,
+};
+
+/** A token popping into place (arrival, encounter focus). */
+export const popIn: Variants = {
+  hidden: { opacity: 0, scale: 0.6 },
+  show: { opacity: 1, scale: 1, transition: spring.bouncy },
+};
+
+/** Status badge swap — small rise + fade for journey-state changes. */
+export const statusSwap: Variants = {
+  hidden: { opacity: 0, y: 6, scale: 0.96 },
+  show: { opacity: 1, y: 0, scale: 1, transition: spring.snappy },
+  exit: { opacity: 0, y: -6, scale: 0.96, transition: { duration: 0.16 } },
+};

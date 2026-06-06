@@ -5,6 +5,7 @@
  */
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Agent } from "../../lib/api";
 import { spring, fadeUp } from "../../lib/anim";
 import { truncate } from "../../lib/format";
@@ -15,6 +16,7 @@ import { Badge } from "../../components/ui/Badge";
 const MAX_TAGS = 4;
 
 export function AgentCard({ agent }: { agent: Agent }) {
+  const { t } = useTranslation(["agents", "common"]);
   const tags = agent.profile_tags.slice(0, MAX_TAGS);
   const overflow = agent.profile_tags.length - tags.length;
 
@@ -36,7 +38,7 @@ export function AgentCard({ agent }: { agent: Agent }) {
                   {agent.name}
                 </h3>
                 <Badge tone={agent.is_public ? "accent" : "neutral"}>
-                  {agent.is_public ? "Public" : "Private"}
+                  {agent.is_public ? t("common:visibility.public") : t("common:visibility.private")}
                 </Badge>
               </div>
               <span className="font-mono text-xs text-faint">{agent.id.slice(0, 8)}</span>
@@ -61,11 +63,11 @@ export function AgentCard({ agent }: { agent: Agent }) {
           <div className="flex items-center justify-between border-t border-border/40 pt-3 text-xs text-faint">
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden>🌀</span>
-              {agent.max_rounds} rounds
+              {t("card.rounds", { count: agent.max_rounds })}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden>🧩</span>
-              {agent.skills.length} {agent.skills.length === 1 ? "skill" : "skills"}
+              {t("card.skills", { count: agent.skills.length })}
             </span>
           </div>
         </Card>

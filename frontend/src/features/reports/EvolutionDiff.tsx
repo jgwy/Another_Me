@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Evolution } from "../../lib/api";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -17,6 +18,7 @@ function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 function DiffPane({ variant, text }: { variant: "before" | "after"; text: string }) {
+  const { t } = useTranslation("reports");
   const before = variant === "before";
   return (
     <div className={cn("rounded-xl border px-4 py-3", before ? "border-danger/25 bg-danger/5" : "border-success/25 bg-success/5")}>
@@ -25,7 +27,7 @@ function DiffPane({ variant, text }: { variant: "before" | "after"; text: string
           {before ? "−" : "+"}
         </span>
         <span className="text-[11px] font-medium uppercase tracking-wider text-faint">
-          {before ? "Before" : "After"}
+          {before ? t("evolution.before") : t("evolution.after")}
         </span>
       </div>
       <p className={cn("mt-1.5 text-sm leading-relaxed", before ? "text-muted" : "text-ink")}>
@@ -36,6 +38,7 @@ function DiffPane({ variant, text }: { variant: "before" | "after"; text: string
 }
 
 export function EvolutionDiff({ agentId, agentName }: { agentId: string; agentName: string }) {
+  const { t } = useTranslation(["reports", "common"]);
   const { data: evolutions = [], isLoading } = useEvolutions(agentId);
   const apply = useApplyEvolution(agentId);
 
@@ -52,8 +55,8 @@ export function EvolutionDiff({ agentId, agentName }: { agentId: string; agentNa
     return (
       <EmptyState
         icon="🧬"
-        title={`No evolutions for ${agentName}`}
-        description="When this agent finishes a scenario, proposed persona, skill, and rule updates will appear here for review."
+        title={t("evolution.noneForTitle", { name: agentName })}
+        description={t("evolution.noneForDescription")}
       />
     );
   }
@@ -86,17 +89,18 @@ export function EvolutionDiff({ agentId, agentName }: { agentId: string; agentNa
                 <div className="flex items-center gap-3">
                   <span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-soft text-brand">🧬</span>
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-ink">Proposed evolution</span>
+                    <span className="text-sm font-semibold text-ink">{t("evolution.proposed")}</span>
                     <span className="text-xs text-faint">{timeAgo(evo.created_at)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {evo.applied ? (
                     <Badge tone="success">
-                      Applied{evo.applied_at ? ` · ${timeAgo(evo.applied_at)}` : ""}
+                      {t("common:actions.applied")}
+                      {evo.applied_at ? ` · ${timeAgo(evo.applied_at)}` : ""}
                     </Badge>
                   ) : (
-                    <Badge tone="neutral">Preview</Badge>
+                    <Badge tone="neutral">{t("evolution.preview")}</Badge>
                   )}
                   <Button
                     size="sm"
@@ -104,14 +108,14 @@ export function EvolutionDiff({ agentId, agentName }: { agentId: string; agentNa
                     loading={pending}
                     onClick={() => onToggle(evo)}
                   >
-                    {evo.applied ? "Roll back" : "Apply"}
+                    {evo.applied ? t("common:actions.rollback") : t("common:actions.apply")}
                   </Button>
                 </div>
               </div>
 
               {(before || after) && (
                 <div className="flex flex-col gap-2">
-                  <Eyebrow>人设 · Persona</Eyebrow>
+                  <Eyebrow>{t("evolution.persona")}</Eyebrow>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <DiffPane variant="before" text={before} />
                     <DiffPane variant="after" text={after} />
@@ -121,13 +125,13 @@ export function EvolutionDiff({ agentId, agentName }: { agentId: string; agentNa
 
               {skills.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <Eyebrow>新增技能 · Skills added</Eyebrow>
+                  <Eyebrow>{t("evolution.skillsAdded")}</Eyebrow>
                   <div className="flex flex-col gap-2">
                     {skills.map((skill, i) => (
                       <div key={i} className="rounded-xl border border-accent/25 bg-accent/5 px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm leading-none text-accent">+</span>
-                          <span className="text-sm font-semibold text-ink">{skill.name || "Skill"}</span>
+                          <span className="text-sm font-semibold text-ink">{skill.name || t("evolution.skillFallback")}</span>
                         </div>
                         {skill.content && (
                           <p className="mt-1 text-sm leading-relaxed text-muted">{skill.content}</p>
@@ -140,7 +144,7 @@ export function EvolutionDiff({ agentId, agentName }: { agentId: string; agentNa
 
               {ruleEntries.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <Eyebrow>规则 · Rules</Eyebrow>
+                  <Eyebrow>{t("evolution.rules")}</Eyebrow>
                   <div className="flex flex-col gap-3">
                     {ruleEntries.map(([key, value]) => {
                       const items = Array.isArray(value)

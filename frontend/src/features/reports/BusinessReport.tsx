@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Report } from "../../lib/api";
 import type { BadgeTone } from "../../components/ui/Badge";
 import { Badge } from "../../components/ui/Badge";
@@ -44,6 +45,7 @@ function CheckIcon({ className }: { className?: string }) {
 }
 
 export function BusinessReport({ report }: { report: Report }) {
+  const { t } = useTranslation("reports");
   const content = report.content;
   const feasibility = asString(content.feasibility);
   const valuationLean = asString(content.valuation_lean);
@@ -62,7 +64,7 @@ export function BusinessReport({ report }: { report: Report }) {
       {recommendation && (
         <motion.div variants={fadeUp}>
           <div className={cn("relative overflow-hidden rounded-2xl border p-5 sm:p-6", RECO_BANNER[tone])}>
-            <Badge tone={tone}>建议 · Recommendation</Badge>
+            <Badge tone={tone}>{t("business.recommendation")}</Badge>
             <p className="mt-3 text-lg font-semibold leading-snug text-ink">{recommendation}</p>
           </div>
         </motion.div>
@@ -71,7 +73,7 @@ export function BusinessReport({ report }: { report: Report }) {
       {feasibility && (
         <motion.div variants={fadeUp}>
           <Card className="p-5 sm:p-6">
-            <Eyebrow>可行性 · Feasibility</Eyebrow>
+            <Eyebrow>{t("business.feasibility")}</Eyebrow>
             <p className="mt-2 text-sm leading-relaxed text-muted">{feasibility}</p>
           </Card>
         </motion.div>
@@ -81,7 +83,7 @@ export function BusinessReport({ report }: { report: Report }) {
         {risks.length > 0 && (
           <motion.div variants={fadeUp}>
             <Card className="h-full p-5 sm:p-6">
-              <Eyebrow>风险 · Risks</Eyebrow>
+              <Eyebrow>{t("business.risks")}</Eyebrow>
               <ul className="mt-3 flex flex-col gap-3">
                 {risks.map((risk, i) => (
                   <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
@@ -97,7 +99,7 @@ export function BusinessReport({ report }: { report: Report }) {
         {highlights.length > 0 && (
           <motion.div variants={fadeUp}>
             <Card className="h-full p-5 sm:p-6">
-              <Eyebrow>亮点 · Highlights</Eyebrow>
+              <Eyebrow>{t("business.highlights")}</Eyebrow>
               <ul className="mt-3 flex flex-col gap-3">
                 {highlights.map((highlight, i) => (
                   <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
@@ -114,7 +116,7 @@ export function BusinessReport({ report }: { report: Report }) {
       {valuationLean && (
         <motion.div variants={fadeUp}>
           <Card className="p-5 sm:p-6">
-            <Eyebrow>估值倾向 · Valuation lean</Eyebrow>
+            <Eyebrow>{t("business.valuationLean")}</Eyebrow>
             <p className="mt-2 text-sm leading-relaxed text-muted">{valuationLean}</p>
           </Card>
         </motion.div>

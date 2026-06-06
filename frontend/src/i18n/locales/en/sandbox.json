@@ -1,0 +1,51 @@
+{
+  "ranCode": "sandbox ran code",
+  "by": "by {{name}}",
+  "exit": "exit {{code}}",
+  "noOutput": "(no output)",
+  "showCode": "Show code",
+  "hideCode": "Hide code",
+  "stdout": "stdout",
+  "stderr": "stderr",
+  "page": {
+    "eyebrow": "Workspace",
+    "title": "Social · Work Sandbox",
+    "description": "Hand your twin a snippet, run it live, and read the result as a first-class evidence card."
+  },
+  "editor": {
+    "title": "Code",
+    "subtitle": "Write some Python and hit run to see the output.",
+    "codeLabel": "Code",
+    "placeholder": "Paste or write code here…",
+    "languageLabel": "Language",
+    "comingSoon": "coming soon",
+    "lang": {
+      "python": "Python",
+      "javascript": "JavaScript",
+      "sql": "SQL"
+    },
+    "examplesLabel": "Examples",
+    "run": "Run",
+    "running": "Running…"
+  },
+  "examples": {
+    "growth": "Growth recap",
+    "icebreaker": "Icebreaker"
+  },
+  "output": {
+    "title": "Output",
+    "emptyTitle": "No run yet",
+    "emptyDescription": "Write code on the left and hit Run — the result shows up here as an evidence card.",
+    "running": "Running in the sandbox…",
+    "timedOut": "Timed out — the sandbox stopped this run.",
+    "ranAt": "ran at {{time}}",
+    "error": "The run failed — please try again."
+  },
+  "hint": {
+    "integration": "The public run endpoint isn't in the locked API contract yet — it falls back to a typed demo run (echoing print(\"…\") strings) and switches to real execution at integration."
+  },
+  "history": {
+    "title": "Run history",
+    "clear": "Clear"
+  }
+}

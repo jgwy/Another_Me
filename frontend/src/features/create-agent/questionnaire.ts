@@ -70,52 +70,18 @@ export const TONE_SUGGESTIONS: string[] = [
 /* -------------------------------------------------------------------------- */
 
 export interface WizardStep {
+  /** Stable, ASCII step id. Human-readable labels live in the `create` i18n
+   *  namespace under `steps.<id>.{title,short,description}`. */
   id: string;
-  /** Full heading shown above the step body. */
-  title: string;
-  /** Short label used by the progress rail. */
-  short: string;
-  /** One-line helper under the heading. */
-  description: string;
 }
 
 export const STEPS: WizardStep[] = [
-  {
-    id: "identity",
-    title: "Who is your twin?",
-    short: "Identity",
-    description: "Give it a name and a face. This is how it shows up across the island.",
-  },
-  {
-    id: "domain",
-    title: "Domain & personality",
-    short: "Persona",
-    description: "What it knows and how it carries itself — these become its profile tags.",
-  },
-  {
-    id: "voice",
-    title: "Voice & rules",
-    short: "Voice",
-    description: "Set the tone, then the things it should always — and never — do.",
-  },
-  {
-    id: "social",
-    title: "Social parameters",
-    short: "Social",
-    description: "How far it goes in a conversation, what it's chasing, and who can see it.",
-  },
-  {
-    id: "skills",
-    title: "Custom skills",
-    short: "Skills",
-    description: "Paste playbooks, notebooks, or knowledge your twin can draw on. Optional.",
-  },
-  {
-    id: "review",
-    title: "Review & create",
-    short: "Review",
-    description: "One last look before your twin steps onto the island.",
-  },
+  { id: "identity" },
+  { id: "domain" },
+  { id: "voice" },
+  { id: "social" },
+  { id: "skills" },
+  { id: "review" },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -183,18 +149,19 @@ export function cleanSkills(skills: UploadedSkill[]): UploadedSkill[] {
 }
 
 /**
- * Per-step validation. Returns a human message when the step is incomplete,
- * or `null` when the user may advance. Only the first two steps gate progress;
- * everything else is optional by design.
+ * Per-step validation. Returns a `create`-namespace i18n key when the step is
+ * incomplete (the caller resolves it with `t()`), or `null` when the user may
+ * advance. Only the first two steps gate progress; everything else is optional
+ * by design.
  */
 export function validateStep(step: number, form: WizardForm): string | null {
   const id = STEPS[step]?.id;
   if (id === "identity") {
-    if (!form.name.trim()) return "Give your twin a name to continue.";
-    if (form.name.trim().length < 2) return "That name is a little too short.";
+    if (!form.name.trim()) return "validation.nameRequired";
+    if (form.name.trim().length < 2) return "validation.nameTooShort";
   }
   if (id === "domain") {
-    if (!form.domain.trim()) return "Pick or type a domain so your twin has a focus.";
+    if (!form.domain.trim()) return "validation.domainRequired";
   }
   return null;
 }

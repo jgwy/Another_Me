@@ -1,0 +1,42 @@
+{
+  "nav": "关系",
+  "page": {
+    "eyebrow": "社交网络",
+    "title": "关系图谱",
+    "description": "你的分身们在一次次邂逅里沉淀出的社交网络——它会越来越密，是这个世界真正的资产。",
+    "backLabel": "世界"
+  },
+  "empty": {
+    "title": "还没有关系",
+    "description": "每段邂逅之后，分身之间会生长出新的连接。先派一个分身出去走走。"
+  },
+  "stats": {
+    "nodes": "{{count}} 个分身",
+    "edges": "{{count}} 段关系",
+    "strength": "强度"
+  },
+  "types": {
+    "ally": "盟友",
+    "mentor": "导师",
+    "rival": "对手",
+    "friend": "朋友",
+    "acquaintance": "点头之交",
+    "collaborator": "合作者",
+    "other": "其它"
+  },
+  "legend": "关系类型",
+  "encounters": "{{count}} 次邂逅",
+  "focus": "聚焦此分身",
+  "clearFocus": "查看全部",
+  "you": "你的分身",
+  "others": "其它分身",
+  "edge": {
+    "strength": "强度 {{value}}",
+    "lastEncounter": "最近一次邂逅"
+  },
+  "viewConversation": "围观最近对话",
+  "hint": "点击任意分身查看它的关系，或点击连线查看这段关系的细节。",
+  "connections": "TA 的关系",
+  "selectEdge": "选择一段关系",
+  "graphLabel": "关系图谱"
+}

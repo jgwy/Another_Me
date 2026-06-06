@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     max_rounds: int = 8
     max_concurrent_conversations: int = 4
 
+    # --- Trips (autonomous "travelling-frog" journeys, §6) ---
+    # Real wall-clock duration a trip is spread over (env: TRIP_DURATION). Encounters
+    # are interleaved with travel pauses summing to roughly this.
+    trip_duration: int = 60
+    # Default number of encounters per trip (clamped to 2..4 by the planner).
+    trip_max_encounters: int = 3
+
     # --- Sandbox runner ---
     sandbox_url: str = "http://localhost:8001"
     sandbox_timeout_seconds: int = 10

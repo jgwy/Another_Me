@@ -13,6 +13,8 @@ import type {
   Evolution,
   MarketplaceItem,
   Message,
+  Notification,
+  Relationship,
   Report,
   Scenario,
   Skill,
@@ -154,9 +156,16 @@ function skill(agentId: string, name: string, content: string, source: Skill["so
     agent_id: agentId,
     owner_id: MOCK_USER.id,
     name,
+    description: content,
+    prompt_body: content,
     content,
+    params: [],
+    tags: [],
+    executable: { kind: "none" },
     source,
+    is_public: false,
     created_at: minutesAgo(60 * 20),
+    updated_at: minutesAgo(60 * 20),
   };
 }
 
@@ -669,6 +678,13 @@ export const MOCK_EVOLUTIONS: Evolution[] = [
 /* Marketplace                                                                 */
 /* -------------------------------------------------------------------------- */
 
+const SK = {
+  growth: "5c111000-0000-4000-8000-000000000001",
+  dcf: "5c111000-0000-4000-8000-000000000002",
+  listening: "5c111000-0000-4000-8000-000000000003",
+  pandas: "5c111000-0000-4000-8000-000000000004",
+} as const;
+
 export const MOCK_MARKETPLACE: MarketplaceItem[] = [
   {
     id: genId(),
@@ -678,8 +694,16 @@ export const MOCK_MARKETPLACE: MarketplaceItem[] = [
     title: "Ada Sterling — Sharp VC Twin",
     description: "Battle-tested fintech investor. Great sparring partner for pitch practice.",
     price_points: 25,
+    version: 3,
+    fork_mode: "editable",
+    likes: 96,
+    forks: 142,
+    views: 1840,
     downloads: 142,
+    snapshot: {},
+    liked: false,
     created_at: minutesAgo(60 * 30),
+    updated_at: minutesAgo(60 * 8),
   },
   {
     id: genId(),
@@ -689,19 +713,35 @@ export const MOCK_MARKETPLACE: MarketplaceItem[] = [
     title: "Mira — The Listener",
     description: "An empathy-first café twin for warm, unhurried conversations.",
     price_points: 0,
+    version: 1,
+    fork_mode: "editable",
+    likes: 61,
+    forks: 88,
+    views: 920,
     downloads: 88,
+    snapshot: {},
+    liked: true,
     created_at: minutesAgo(60 * 20),
+    updated_at: minutesAgo(60 * 20),
   },
   {
     id: genId(),
     kind: "skill",
-    ref_id: genId(),
+    ref_id: SK.growth,
     owner_id: MOCK_USER.id,
     title: "Growth modeling (Python)",
     description: "Cohort retention + MoM projection notebook your twin can run in the sandbox.",
     price_points: 10,
+    version: 2,
+    fork_mode: "locked",
+    likes: 40,
+    forks: 57,
+    views: 610,
     downloads: 57,
+    snapshot: {},
+    liked: false,
     created_at: minutesAgo(60 * 12),
+    updated_at: minutesAgo(60 * 5),
   },
   {
     id: genId(),
@@ -711,9 +751,181 @@ export const MOCK_MARKETPLACE: MarketplaceItem[] = [
     title: "Nova — Data Twin",
     description: "Quantifies everything, caveats honestly. Pairs well with the Exchange.",
     price_points: 15,
+    version: 1,
+    fork_mode: "editable",
+    likes: 22,
+    forks: 34,
+    views: 280,
     downloads: 34,
+    snapshot: {},
+    liked: false,
     created_at: minutesAgo(60 * 4),
+    updated_at: minutesAgo(60 * 4),
   },
+];
+
+/* -------------------------------------------------------------------------- */
+/* Standalone library skills (agent_id = null) — for the 捏脸 selection step   */
+/* and the skills CRUD fallback.                                               */
+/* -------------------------------------------------------------------------- */
+
+function librarySkill(
+  id: string,
+  name: string,
+  description: string,
+  promptBody: string,
+  tags: string[],
+  isPublic = true,
+  ownerId: string = MOCK_USER.id,
+): Skill {
+  return {
+    id,
+    agent_id: null,
+    owner_id: ownerId,
+    name,
+    description,
+    prompt_body: promptBody,
+    content: promptBody,
+    params: [],
+    tags,
+    executable: { kind: "none" },
+    source: "upload",
+    is_public: isPublic,
+    created_at: minutesAgo(60 * 16),
+    updated_at: minutesAgo(60 * 6),
+  };
+}
+
+export const MOCK_SKILLS: Skill[] = [
+  librarySkill(
+    SK.growth,
+    "Growth modeling (Python)",
+    "队列留存 + 月环比增长投影，可在沙盒里直接跑。",
+    "When asked about growth, write and run Python to compute MoM growth, cohort retention, and LTV/CAC from the given figures; show the numbers, then interpret them honestly.",
+    ["python", "growth", "analytics"],
+  ),
+  librarySkill(
+    SK.dcf,
+    "DCF 估值模型",
+    "带敏感性区间的现金流折现估值。",
+    "Build a discounted-cash-flow valuation with explicit assumptions and a sensitivity band; state the key driver and the single biggest risk to the number.",
+    ["finance", "valuation"],
+  ),
+  librarySkill(
+    SK.listening,
+    "深度倾听",
+    "反映式倾听与情绪命名，让对话更有温度。",
+    "Practice reflective listening: name the emotion you hear, ask one open question, and resist rushing to advice.",
+    ["empathy", "communication"],
+  ),
+  librarySkill(
+    SK.pandas,
+    "Pandas 数据整理",
+    "快速、正确的 DataFrame 变换。",
+    "Use pandas to clean and reshape tabular data correctly and fast; prefer vectorized operations and always sanity-check the result.",
+    ["python", "data"],
+  ),
+];
+
+/* -------------------------------------------------------------------------- */
+/* Notifications (inbox) — postcards, reports, trip + relationship updates     */
+/* -------------------------------------------------------------------------- */
+
+export const MOCK_NOTIFICATIONS: Notification[] = [
+  {
+    id: genId(),
+    user_id: MOCK_USER.id,
+    kind: "trip_completed",
+    title: "Kai 的旅行回来了",
+    body: "三段邂逅全部完成，整趟总报告已生成。",
+    read: false,
+    data: { agent_id: AG.founder, report_id: REP.exchange },
+    created_at: minutesAgo(4),
+    read_at: null,
+  },
+  {
+    id: genId(),
+    user_id: MOCK_USER.id,
+    kind: "postcard",
+    title: "一张新明信片",
+    body: "“原来增长的尽头是留存——我把这句话带回来了。”",
+    read: false,
+    data: { agent_id: AG.founder, conversation_id: CONV.exchange },
+    created_at: minutesAgo(9),
+    read_at: null,
+  },
+  {
+    id: genId(),
+    user_id: MOCK_USER.id,
+    kind: "report_ready",
+    title: "邂逅分报告就绪",
+    body: "Kai × Ada · 交易所：可行性高，主要风险是收入集中。",
+    read: false,
+    data: { conversation_id: CONV.exchange, report_id: REP.exchange },
+    created_at: minutesAgo(12),
+    read_at: null,
+  },
+  {
+    id: genId(),
+    user_id: MOCK_USER.id,
+    kind: "relationship_update",
+    title: "一段新的关系",
+    body: "Lin Wei 与 Rex Tanaka 的关系强度上升到「朋友」。",
+    read: true,
+    data: { agent_id: AG.teacher, conversation_id: CONV.cafe },
+    created_at: minutesAgo(40),
+    read_at: minutesAgo(38),
+  },
+  {
+    id: genId(),
+    user_id: MOCK_USER.id,
+    kind: "marketplace",
+    title: "你的分身被 Fork 了",
+    body: "「Nova — Data Twin」获得了一次新的 Fork。",
+    read: true,
+    data: {},
+    created_at: minutesAgo(60 * 3),
+    read_at: minutesAgo(60 * 2),
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/* Relationships — the densifying social graph                                 */
+/* -------------------------------------------------------------------------- */
+
+function rel(
+  from: string,
+  to: string,
+  strength: number,
+  type: string,
+  label: string,
+  count: number,
+  lastConv: string | null = null,
+): Relationship {
+  return {
+    id: genId(),
+    owner_id: MOCK_USER.id,
+    from_agent_id: from,
+    to_agent_id: to,
+    strength,
+    type,
+    label,
+    encounters_count: count,
+    last_conversation_id: lastConv,
+    from_agent: summaryOf(from),
+    to_agent: summaryOf(to),
+    created_at: minutesAgo(60 * 24),
+    updated_at: minutesAgo(30),
+  };
+}
+
+export const MOCK_RELATIONSHIPS: Relationship[] = [
+  rel(AG.founder, AG.investor, 0.72, "ally", "投资人 · 软性认可", 3, CONV.exchange),
+  rel(AG.founder, AG.analyst, 0.54, "collaborator", "数据搭子", 2),
+  rel(AG.teacher, AG.dev, 0.61, "friend", "跨城共情", 2, CONV.cafe),
+  rel(AG.teacher, AG.partner, 0.38, "acquaintance", "偶遇", 1),
+  rel(AG.founder, AG.dev, 0.33, "acquaintance", "聊过一次产品", 1),
+  rel(AG.analyst, AG.chemist, 0.41, "collaborator", "方法论互补", 1),
 ];
 
 /* -------------------------------------------------------------------------- */

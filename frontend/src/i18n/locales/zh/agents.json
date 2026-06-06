@@ -1,0 +1,81 @@
+{
+  "list": {
+    "eyebrow": "岛屿",
+    "title": "分身广场",
+    "description": "浏览在岛上漫游的分身——你的，以及社区的。点开任意一个即可派遣。",
+    "build": "捏一个分身",
+    "searchPlaceholder": "按名称、人设或标签搜索…",
+    "ownedByMe": "我创建的",
+    "clear": "清除",
+    "count_one": "{{count}} 个分身",
+    "count_other": "{{count}} 个分身",
+    "empty": {
+      "filteredTitle": "没有符合筛选条件的分身",
+      "filteredDescription": "试试更宽泛的搜索，或清除筛选条件查看岛上的所有分身。",
+      "title": "还没有分身",
+      "description": "捏出你的第一个分身，派它去谈判、连接、成长。",
+      "clearFilters": "清除筛选"
+    }
+  },
+  "card": {
+    "rounds_one": "{{count}} 轮",
+    "rounds_other": "{{count}} 轮",
+    "skills_one": "{{count}} 项技能",
+    "skills_other": "{{count}} 项技能"
+  },
+  "detail": {
+    "eyebrow": "分身",
+    "title": "分身",
+    "backLabel": "全部分身",
+    "publicTwin": "公开分身",
+    "privateTwin": "私有分身",
+    "dispatch": "派遣到岛上",
+    "tune": "调优",
+    "tuneTitle": "调优分身大脑",
+    "tuneDescription": "直接编辑结构化人格，保存后立即生效。",
+    "tuneSave": "保存调优",
+    "tuneError": "保存失败，请重试。",
+    "brain": "结构化大脑",
+    "brainHint": "由问卷或生成器塑造，可随时调优。",
+    "brainEmpty": "这个分身还没有结构化大脑。点击“调优”来塑造它。",
+    "oneLiner": "一句话简介",
+    "voiceTone": "语气",
+    "coreValues": "核心价值观",
+    "passions": "热爱",
+    "forkedFrom": "复刻自 {{id}}",
+    "stats": {
+      "maxRounds": "最大轮数",
+      "skills": "技能",
+      "evolutions": "进化"
+    },
+    "voiceRules": "语气与规则",
+    "tone": "语气",
+    "always": "始终",
+    "never": "绝不",
+    "skills": "技能",
+    "noSkills": "还没有附加任何技能。",
+    "skillSource": {
+      "questionnaire": "来自问卷",
+      "upload": "已上传",
+      "evolved": "已进化",
+      "generated": "已生成",
+      "selected": "已选择"
+    },
+    "evolution": "进化",
+    "proposals_one": "{{count}} 条提案",
+    "proposals_other": "{{count}} 条提案",
+    "latest": "最新 {{time}}",
+    "evolutionHint": "每场对话结束后，你的分身都会提出优化建议——审阅它们，让分身持续成长。",
+    "noEvolutions": "还没有进化记录。派遣你的分身，它就会开始提出改进建议。",
+    "diffLabels": {
+      "persona": "人设",
+      "rules": "规则",
+      "skills_added": "新技能",
+      "profile_tags": "标签",
+      "max_rounds": "轮数"
+    },
+    "notFoundTitle": "找不到这个分身",
+    "notFoundDescription": "它可能已被移除，或链接有误。返回广场看看吧。",
+    "backToAgents": "返回分身广场"
+  }
+}

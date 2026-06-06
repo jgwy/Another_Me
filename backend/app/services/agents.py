@@ -31,22 +31,27 @@ async def clone_agent(
     *,
     name: str | None = None,
     is_public: bool = False,
+    source_version: int | None = None,
 ) -> Agent:
     """Deep-clone ``source`` (including skills) to a new owner; sets ``forked_from``.
 
-    The caller is responsible for committing. Returns the clone with skills loaded.
+    ``source_version`` records the Marketplace v2 listing version this fork was
+    taken from (lineage sync). The caller is responsible for committing. Returns
+    the clone with skills loaded.
     """
     clone = Agent(
         owner_id=new_owner_id,
         name=name or f"{source.name} (fork)",
         persona=source.persona,
         rules=copy.deepcopy(source.rules) if source.rules else {},
+        prompt_config=copy.deepcopy(source.prompt_config) if source.prompt_config else {},
         profile_tags=list(source.profile_tags or []),
         questionnaire=copy.deepcopy(source.questionnaire) if source.questionnaire else None,
         avatar=source.avatar,
         max_rounds=source.max_rounds,
         is_public=is_public,
         forked_from=source.id,
+        source_version=source_version,
     )
     session.add(clone)
     await session.flush()
@@ -56,7 +61,12 @@ async def clone_agent(
                 agent_id=clone.id,
                 owner_id=new_owner_id,
                 name=s.name,
+                description=getattr(s, "description", "") or "",
+                prompt_body=getattr(s, "prompt_body", "") or s.content,
                 content=s.content,
+                params=copy.deepcopy(getattr(s, "params", None) or []),
+                tags=copy.deepcopy(getattr(s, "tags", None) or []),
+                executable=copy.deepcopy(getattr(s, "executable", None)) if getattr(s, "executable", None) else None,
                 source=s.source,
             )
         )

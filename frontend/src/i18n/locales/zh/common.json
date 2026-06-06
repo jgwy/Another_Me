@@ -1,0 +1,110 @@
+{
+  "brand": {
+    "name": "觅见.AI",
+    "tagline": "你的 AI 分身，替你社交、替你思考。",
+    "version": "v0.1 · 重构基座"
+  },
+  "actions": {
+    "ok": "确定",
+    "cancel": "取消",
+    "save": "保存",
+    "saving": "保存中…",
+    "saved": "已保存",
+    "delete": "删除",
+    "close": "关闭",
+    "dismiss": "忽略",
+    "retry": "重试",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "confirm": "确认",
+    "create": "创建",
+    "edit": "编辑",
+    "apply": "应用",
+    "applied": "已应用",
+    "rollback": "回滚",
+    "search": "搜索",
+    "loading": "加载中…",
+    "submit": "提交",
+    "upload": "上传",
+    "copy": "复制",
+    "copied": "已复制",
+    "viewAll": "查看全部",
+    "seeMore": "查看更多",
+    "open": "进入",
+    "refresh": "刷新",
+    "continue": "继续",
+    "remove": "移除",
+    "add": "添加"
+  },
+  "status": {
+    "pending": "等待中",
+    "queued": "排队中",
+    "matched": "已匹配",
+    "running": "进行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "live": "实时"
+  },
+  "demo": {
+    "badge": "演示数据",
+    "tooltip": "实时接口尚未就绪 —— 当前展示带类型的演示数据。",
+    "hint": "演示数据 · 后端就绪后转为实时"
+  },
+  "errors": {
+    "generic": "出错了，请稍后再试。",
+    "network": "网络请求失败。",
+    "notFound": "没有找到内容。",
+    "unauthorized": "请先登录。"
+  },
+  "empty": {
+    "title": "暂无内容",
+    "description": "这里还空着。"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "register": "注册",
+    "createAccount": "创建账号",
+    "welcomeBack": "欢迎回来",
+    "getStarted": "开始体验",
+    "email": "邮箱",
+    "username": "用户名",
+    "password": "密码",
+    "emailPlaceholder": "you@example.com",
+    "usernamePlaceholder": "你的昵称",
+    "passwordPlaceholder": "至少 8 位",
+    "signingIn": "登录中…",
+    "registering": "注册中…",
+    "noAccount": "还没有账号？",
+    "haveAccount": "已有账号？",
+    "toRegister": "去注册",
+    "toLogin": "去登录",
+    "signInSubtitle": "登录后进入你的分身世界。",
+    "registerSubtitle": "创建账号，捏出第一个数字分身。",
+    "points": "{{count}} 积分",
+    "emailRequired": "请输入邮箱。",
+    "usernameRequired": "请输入用户名。",
+    "passwordRequired": "请输入密码。",
+    "usernameMinChars": "用户名至少需要 {{count}} 个字符。",
+    "passwordMinChars": "密码至少需要 {{count}} 个字符。"
+  },
+  "footer": {
+    "tagline": "觅见.AI · 你的 AI 分身，被派往一个活着的社交世界。"
+  },
+  "visibility": {
+    "public": "公开",
+    "private": "私有"
+  },
+  "a11y": {
+    "loading": "加载中"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前"
+  },
+  "vs": "vs"
+}

@@ -1,0 +1,74 @@
+{
+  "nav": "旅行",
+  "page": {
+    "eyebrow": "旅行",
+    "title": "旅行详情",
+    "backLabel": "世界"
+  },
+  "status": {
+    "planning": "规划中",
+    "traveling": "在路上",
+    "in_encounter": "邂逅中",
+    "returning": "归途",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消"
+  },
+  "agentStatus": {
+    "idle": "待命",
+    "thinking": "思考中",
+    "departing": "出发",
+    "traveling": "在路上",
+    "meeting": "相遇",
+    "talking": "交谈中",
+    "returning": "归途",
+    "home": "已归来"
+  },
+  "scenes": {
+    "exchange": "交易所",
+    "cafe": "咖啡馆",
+    "lab": "化学实验室",
+    "coding_club": "Coding Club"
+  },
+  "plan": {
+    "title": "自治规划",
+    "summary": "规划概述",
+    "stops": "行程",
+    "reasons": "选择理由",
+    "risks": "风险",
+    "planning": "分身正在读取画像、规划这趟旅程……"
+  },
+  "encounters": {
+    "title": "邂逅",
+    "count": "{{count}} 段邂逅",
+    "spectate": "围观",
+    "report": "查看报告",
+    "postcard": "明信片",
+    "withPartner": "对话对象",
+    "empty": "规划完成后，这里会列出每一段邂逅。"
+  },
+  "encounterStatus": {
+    "pending": "待进行",
+    "running": "进行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "skipped": "跳过"
+  },
+  "summary": {
+    "title": "整趟总报告",
+    "view": "查看总报告",
+    "pending": "全部邂逅结束后会生成总报告。"
+  },
+  "actions": {
+    "cancel": "取消旅行",
+    "cancelling": "取消中…",
+    "spectate": "围观当前邂逅",
+    "toWorld": "回到世界",
+    "toInbox": "去信箱"
+  },
+  "task": "任务",
+  "empty": {
+    "title": "找不到这次旅行",
+    "description": "它可能已经结束、被取消，或还在演示数据里。"
+  }
+}

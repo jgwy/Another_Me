@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { spring } from "../../lib/anim";
 
@@ -21,9 +22,11 @@ export function PageHeader({
   eyebrow,
   actions,
   backTo,
-  backLabel = "Back",
+  backLabel,
   className,
 }: PageHeaderProps) {
+  const { t } = useTranslation("common");
+  const resolvedBackLabel = backLabel ?? t("actions.back");
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -40,7 +43,7 @@ export function PageHeader({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="m15 18-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {backLabel}
+            {resolvedBackLabel}
           </Link>
         )}
         {eyebrow && (

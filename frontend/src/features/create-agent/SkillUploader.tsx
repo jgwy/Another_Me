@@ -4,6 +4,7 @@
  * time by `cleanSkills`, so partial rows here are harmless.
  */
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { UploadedSkill } from "../../lib/api";
 import { spring } from "../../lib/anim";
 import { Input } from "../../components/ui/Input";
@@ -18,6 +19,7 @@ export function SkillUploader({
   skills: UploadedSkill[];
   onChange: (next: UploadedSkill[]) => void;
 }) {
+  const { t } = useTranslation(["create", "common"]);
   const add = () => onChange([...skills, { name: "", content: "" }]);
 
   const update = (index: number, patch: Partial<UploadedSkill>) => {
@@ -33,11 +35,11 @@ export function SkillUploader({
       {skills.length === 0 ? (
         <EmptyState
           icon={<span>🧩</span>}
-          title="No skills yet"
-          description="Paste a playbook, a notebook, or any knowledge your twin should carry into a scene."
+          title={t("skills.emptyTitle")}
+          description={t("skills.emptyDescription")}
           action={
             <Button type="button" variant="secondary" onClick={add}>
-              Add a skill
+              {t("skills.add")}
             </Button>
           }
         />
@@ -61,7 +63,7 @@ export function SkillUploader({
                     </span>
                     <div className="flex-1">
                       <Input
-                        placeholder="Skill name — e.g. Growth modeling"
+                        placeholder={t("skills.namePlaceholder")}
                         value={skill.name}
                         onChange={(e) => update(i, { name: e.target.value })}
                       />
@@ -70,13 +72,13 @@ export function SkillUploader({
                       type="button"
                       onClick={() => remove(i)}
                       className="mt-2.5 shrink-0 rounded-md px-2 text-sm text-faint transition-colors hover:text-danger"
-                      aria-label={`Remove skill ${i + 1}`}
+                      aria-label={t("skills.removeSkill", { index: i + 1 })}
                     >
-                      Remove
+                      {t("common:actions.remove")}
                     </button>
                   </div>
                   <Textarea
-                    placeholder="What this skill is and how your twin should use it…"
+                    placeholder={t("skills.contentPlaceholder")}
                     rows={3}
                     value={skill.content}
                     onChange={(e) => update(i, { content: e.target.value })}
@@ -87,7 +89,7 @@ export function SkillUploader({
           </ul>
           <div>
             <Button type="button" variant="secondary" onClick={add} leftIcon={<span>＋</span>}>
-              Add another skill
+              {t("skills.addAnother")}
             </Button>
           </div>
         </>

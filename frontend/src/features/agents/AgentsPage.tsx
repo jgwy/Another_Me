@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 import type { AgentListParams } from "../../lib/api";
 import { useAgents } from "../../lib/queries";
@@ -51,6 +52,7 @@ function GallerySkeleton() {
 
 export function AgentsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("agents");
 
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
@@ -100,12 +102,12 @@ export function AgentsPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        eyebrow="The island"
-        title="Agents"
-        description="Browse the twins roaming the island — yours and the community's. Open one to dispatch it."
+        eyebrow={t("list.eyebrow")}
+        title={t("list.title")}
+        description={t("list.description")}
         actions={
           <Button onClick={() => navigate("/agents/new")} leftIcon={<span aria-hidden>＋</span>}>
-            Build a twin
+            {t("list.build")}
           </Button>
         }
       />
@@ -115,7 +117,7 @@ export function AgentsPage() {
           <div className="flex-1">
             <Input
               leftIcon={SearchIcon}
-              placeholder="Search by name, persona, or tag…"
+              placeholder={t("list.searchPlaceholder")}
               value={qInput}
               onChange={(e) => setQInput(e.target.value)}
             />
@@ -132,7 +134,7 @@ export function AgentsPage() {
             )}
           >
             <span aria-hidden>{ownedByMe ? "★" : "☆"}</span>
-            Owned by me
+            {t("list.ownedByMe")}
           </button>
         </div>
 
@@ -164,7 +166,7 @@ export function AgentsPage() {
                 onClick={clearFilters}
                 className="ml-1 text-xs text-faint underline-offset-2 transition-colors hover:text-ink hover:underline"
               >
-                Clear
+                {t("list.clear")}
               </button>
             )}
           </div>
@@ -176,27 +178,23 @@ export function AgentsPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={<span>🛰️</span>}
-          title={hasFilters ? "No twins match those filters" : "No twins yet"}
+          title={hasFilters ? t("list.empty.filteredTitle") : t("list.empty.title")}
           description={
-            hasFilters
-              ? "Try a broader search or clear the filters to see everyone on the island."
-              : "Build your first twin and send it out to negotiate, connect, and grow."
+            hasFilters ? t("list.empty.filteredDescription") : t("list.empty.description")
           }
           action={
             hasFilters ? (
               <Button variant="secondary" onClick={clearFilters}>
-                Clear filters
+                {t("list.empty.clearFilters")}
               </Button>
             ) : (
-              <Button onClick={() => navigate("/agents/new")}>Build a twin</Button>
+              <Button onClick={() => navigate("/agents/new")}>{t("list.build")}</Button>
             )
           }
         />
       ) : (
         <div className="flex flex-col gap-4">
-          <span className="text-xs text-faint">
-            {items.length} {items.length === 1 ? "twin" : "twins"}
-          </span>
+          <span className="text-xs text-faint">{t("list.count", { count: items.length })}</span>
           <motion.div
             variants={staggerContainer(0.05)}
             initial="hidden"

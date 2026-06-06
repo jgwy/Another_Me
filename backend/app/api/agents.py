@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -11,8 +12,17 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import CurrentUser, OptionalUser, SessionDep
 from app.models import Agent, Skill
 from app.schemas import Agent as AgentSchema
-from app.schemas import AgentCreate, AgentForkRequest, AgentPatch, Page
+from app.schemas import (
+    AgentCreate,
+    AgentForkRequest,
+    AgentGenerateRequest,
+    AgentGenerateResponse,
+    AgentPatch,
+    Page,
+    SkillDraft,
+)
 from app.services.agents import agent_visible_to, clone_agent, get_agent_with_skills
+from app.services.generate import generate_agent_draft
 from app.services.synthesis import synthesize_agent
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -21,11 +31,14 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 @router.post("", response_model=AgentSchema, status_code=status.HTTP_201_CREATED)
 async def create_agent(body: AgentCreate, current_user: CurrentUser, session: SessionDep) -> Agent:
     synth = await synthesize_agent(body.name, body.questionnaire)
+    # Client may pass a hand-tuned/generated prompt_config; else use the synthesized one.
+    prompt_config = body.prompt_config if body.prompt_config else synth.get("prompt_config") or {}
     agent = Agent(
         owner_id=current_user.id,
         name=body.name,
         persona=synth["persona"],
         rules=synth["rules"],
+        prompt_config=prompt_config,
         profile_tags=synth["profile_tags"],
         questionnaire=body.questionnaire or None,
         avatar=body.avatar,
@@ -36,23 +49,50 @@ async def create_agent(body: AgentCreate, current_user: CurrentUser, session: Se
     await session.flush()
 
     for s in synth["skills"]:
+        body_text = s.get("content", "")
         session.add(
             Skill(
                 agent_id=agent.id,
                 owner_id=current_user.id,
                 name=s["name"],
-                content=s.get("content", ""),
+                content=body_text,
+                prompt_body=body_text,
                 source="questionnaire",
             )
         )
     for s in body.uploaded_skills:
+        body_text = s.prompt_body or s.content
         session.add(
             Skill(
                 agent_id=agent.id,
                 owner_id=current_user.id,
                 name=s.name,
-                content=s.content,
+                description=s.description,
+                content=body_text,
+                prompt_body=body_text,
+                params=[p.model_dump() for p in s.params],
+                tags=s.tags,
+                executable=s.executable.model_dump() if s.executable else None,
                 source=s.source or "upload",
+            )
+        )
+    # Inject selected standalone/library skills (owned by the caller or unattached).
+    for sid in body.skill_ids:
+        src = await session.get(Skill, sid)
+        if src is None or (src.owner_id != current_user.id and src.agent_id is not None):
+            continue
+        session.add(
+            Skill(
+                agent_id=agent.id,
+                owner_id=current_user.id,
+                name=src.name,
+                description=src.description,
+                content=src.content,
+                prompt_body=src.prompt_body or src.content,
+                params=copy.deepcopy(src.params or []),
+                tags=copy.deepcopy(src.tags or []),
+                executable=copy.deepcopy(src.executable) if src.executable else None,
+                source="selected",
             )
         )
 
@@ -60,6 +100,32 @@ async def create_agent(body: AgentCreate, current_user: CurrentUser, session: Se
     created = await get_agent_with_skills(session, agent.id)
     assert created is not None
     return created
+
+
+@router.post("/generate", response_model=AgentGenerateResponse)
+async def generate_agent(
+    body: AgentGenerateRequest,
+    current_user: CurrentUser,
+) -> AgentGenerateResponse:
+    """Draft a ``prompt_config`` from NL / corpus input (§3.3).
+
+    ``mode == "nl"`` runs skill-creator-style guided clarification; ``mode ==
+    "corpus"`` distills (Second-Me–style modeling, no training) from pasted
+    chats/writing. Returns a non-persisted :class:`AgentGenerateResponse` draft;
+    nothing is written to the database.
+    """
+    draft = await generate_agent_draft(
+        mode=body.mode, input_text=body.input, name=body.name, context=body.context
+    )
+    return AgentGenerateResponse(
+        name=draft["name"],
+        prompt_config=draft["prompt_config"],
+        persona=draft["persona"],
+        rules=draft["rules"],
+        profile_tags=draft["profile_tags"],
+        skills=[SkillDraft(name=s["name"], content=s.get("content", "")) for s in draft["skills"]],
+        questions=draft["questions"],
+    )
 
 
 @router.get("", response_model=Page[AgentSchema])

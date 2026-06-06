@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Avatar } from "../../components/ui/Avatar";
 import { cn } from "../../lib/cn";
 import { bubbleIn } from "../../lib/anim";
@@ -14,6 +15,7 @@ export interface MessageBubbleProps {
 }
 
 export function MessageBubble({ side, name, avatar, color, turnIndex, content, streaming }: MessageBubbleProps) {
+  const { t } = useTranslation("conversation");
   const right = side === "right";
   return (
     <motion.div
@@ -27,7 +29,7 @@ export function MessageBubble({ side, name, avatar, color, turnIndex, content, s
       <div className={cn("flex max-w-[78%] flex-col gap-1", right ? "items-end" : "items-start")}>
         <div className="flex items-center gap-2 text-xs">
           <span className="font-medium text-muted">{name}</span>
-          {turnIndex != null && <span className="font-mono text-faint">[对话{turnIndex}]</span>}
+          {turnIndex != null && <span className="font-mono text-faint">{t("turnLabel", { index: turnIndex })}</span>}
         </div>
         <div
           className={cn(

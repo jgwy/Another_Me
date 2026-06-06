@@ -27,6 +27,10 @@ class Agent(Base):
     name: Mapped[str] = mapped_column()
     persona: Mapped[str] = mapped_column(Text, default="")
     rules: Mapped[dict] = mapped_column(JSONB, default=dict)
+    # Structured social-twin "brain" (see app.schemas.prompt_config.PromptConfig):
+    # identity / voice / values / interests / memory_hooks / security. Empty {} for
+    # legacy agents → the prompt builder falls back to persona/rules/profile_tags.
+    prompt_config: Mapped[dict] = mapped_column(JSONB, default=dict)
     profile_tags: Mapped[list] = mapped_column(JSONB, default=list)
     questionnaire: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     avatar: Mapped[str | None] = mapped_column(nullable=True)
@@ -35,6 +39,8 @@ class Agent(Base):
     forked_from: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
     )
+    # Marketplace v2: the listing version this agent was forked from (lineage sync).
+    source_version: Mapped[int | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

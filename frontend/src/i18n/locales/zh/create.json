@@ -1,0 +1,221 @@
+{
+  "page": {
+    "eyebrow": "创建",
+    "title": "捏一个分身",
+    "description": "回答几个问题，我们就会塑造出一个像你一样思考、争辩、成长的 AI 分身。",
+    "backLabel": "全部分身",
+    "twinFallback": "你的分身",
+    "livePreview": "实时预览",
+    "stepProgress": "第 {{current}} / {{total}} 步",
+    "createTwin": "创建分身",
+    "createError": "无法创建你的分身，请重试。"
+  },
+  "steps": {
+    "identity": {
+      "title": "你的分身是谁？",
+      "short": "身份",
+      "description": "给它取个名字、配张脸。这就是它在岛上示人的样子。"
+    },
+    "domain": {
+      "title": "领域与性格",
+      "short": "人设",
+      "description": "它擅长什么、举止如何——这些会成为它的资料标签。"
+    },
+    "voice": {
+      "title": "语气与规则",
+      "short": "语气",
+      "description": "先定语气，再定它该始终做、绝不做的事。"
+    },
+    "social": {
+      "title": "社交参数",
+      "short": "社交",
+      "description": "它在一场对话里能走多远、追求什么、谁能看到它。"
+    },
+    "skills": {
+      "title": "技能",
+      "short": "技能",
+      "description": "选择已有技能，或粘贴自定义技能。可选。"
+    },
+    "review": {
+      "title": "检查并创建",
+      "short": "检查",
+      "description": "在你的分身踏上岛屿之前，最后看一眼。"
+    }
+  },
+  "validation": {
+    "nameRequired": "先给你的分身起个名字吧。",
+    "nameTooShort": "这个名字有点太短了。",
+    "domainRequired": "选择或输入一个领域，让你的分身有个专长。"
+  },
+  "fields": {
+    "name": "名称",
+    "namePlaceholder": "例如：林川",
+    "avatar": "头像",
+    "avatarHint": "挑一张脸——或粘贴你自己的 emoji 或图片链接。",
+    "avatarInputLabel": "或粘贴 emoji / 图片链接",
+    "avatarInputPlaceholder": "例如 🌟 或 https://…/avatar.png",
+    "useEmoji": "使用 {{emoji}}",
+    "domain": "领域",
+    "domainHint": "你的分身最熟悉的领域。",
+    "domainPlaceholder": "例如：金融科技、教育、数据…",
+    "personality": "性格",
+    "personalityHint": "选择契合的特质——也可以自己添加。",
+    "addTrait": "添加一个特质…",
+    "addYourOwn": "添加你自己的…",
+    "interests": "兴趣",
+    "interestsHint": "用逗号分隔。它们会让资料匹配更精准。",
+    "interestsPlaceholder": "例如：增长、留存、攀岩、爵士乐",
+    "tone": "语气",
+    "toneHint": "你的分身在场时听起来是什么样。",
+    "tonePlaceholder": "例如：充满活力且坦率",
+    "alwaysDo": "始终做",
+    "alwaysDoHint": "你的分身常用的习惯。",
+    "alwaysDoPlaceholder": "例如：用数据支撑观点",
+    "alwaysDoEmpty": "还没有“始终做”——在上方添加一条。",
+    "neverDo": "绝不做",
+    "neverDoHint": "你的分身不会越过的底线。",
+    "neverDoPlaceholder": "例如：回避尖锐问题",
+    "neverDoEmpty": "还没有“绝不做”——在上方添加一条。",
+    "maxRounds": "最大轮数",
+    "maxRoundsHint": "你的分身在单场对话里最多进行多少轮。",
+    "makePublic": "将该分身设为公开",
+    "makePublicDescription": "公开分身可被岛上任何人发现并派遣。",
+    "goals": "目标",
+    "goalsHint": "你的分身在外面想达成什么？",
+    "goalsPlaceholder": "例如：练习在投资人尖锐提问下为单位经济模型辩护。",
+    "removeItem": "移除“{{item}}”"
+  },
+  "review": {
+    "personality": "性格",
+    "interests": "兴趣",
+    "tone": "语气",
+    "toneAuto": "自动",
+    "always": "始终",
+    "never": "绝不",
+    "maxRounds": "最大轮数",
+    "skills": "技能",
+    "skillsAttached": "已附加 {{count}} 项",
+    "skillsSelected": "已选 {{count}} 项",
+    "goals": "目标",
+    "persona": "人设（可选）",
+    "personaHint": "留空将根据上面的回答自动生成。",
+    "personaPlaceholder": "用你分身的口吻写一两句话…"
+  },
+  "skills": {
+    "emptyTitle": "还没有技能",
+    "emptyDescription": "粘贴一份打法、一篇笔记，或任何你的分身该带进场的知识。",
+    "add": "添加技能",
+    "addAnother": "再添加一项技能",
+    "namePlaceholder": "技能名称——例如：增长建模",
+    "removeSkill": "移除技能 {{index}}",
+    "contentPlaceholder": "这项技能是什么、你的分身该如何使用…"
+  },
+  "mode": {
+    "label": "选择创建方式",
+    "hint": "三种方式都通向同一个分身——挑一个最顺手的开始。",
+    "questionnaire": {
+      "title": "问卷捏脸",
+      "description": "回答几步引导式问题，逐步塑造分身。"
+    },
+    "nl": {
+      "title": "自然语言引导",
+      "description": "用一段话描述 TA，AI 生成可编辑的草稿。"
+    },
+    "corpus": {
+      "title": "粘贴语料",
+      "description": "粘贴聊天或文字，提炼出 TA 的口吻与人设。"
+    }
+  },
+  "generate": {
+    "nameLabel": "分身名称（可选）",
+    "namePlaceholder": "留空则由 AI 命名",
+    "avatar": "头像",
+    "regenerate": "重新生成",
+    "questionsTitle": "再补充一点会更像",
+    "questionsHint": "把答案补进上面的描述里再重新生成，或直接在下方微调。",
+    "draftTitle": "分身草稿",
+    "draftHint": "审阅并微调下面的大脑，满意后即可创建。",
+    "tagsLabel": "资料标签",
+    "create": "创建分身",
+    "inputRequired": "先描述一下，或粘贴一些语料。",
+    "nameRequired": "给你的分身起个名字。",
+    "generateError": "生成失败，请重试。",
+    "emptyDraft": "填好上面的内容并生成，草稿会出现在这里。",
+    "nl": {
+      "inputLabel": "描述这个人",
+      "inputPlaceholder": "例如：我的好友小林，35 岁产品经理，理性又幽默，喜欢用类比把复杂问题讲清楚，讨厌空谈和甩锅……",
+      "submit": "生成分身草稿"
+    },
+    "corpus": {
+      "inputLabel": "粘贴语料",
+      "inputPlaceholder": "粘贴聊天记录、朋友圈、文章或任何能代表 TA 的文字……",
+      "submit": "提炼分身"
+    }
+  },
+  "tune": {
+    "modeForm": "表单",
+    "modeJson": "原始 JSON",
+    "jsonHint": "直接编辑 JSON——解析成功后会自动同步到表单。",
+    "jsonError": "JSON 解析失败：{{message}}",
+    "addPlaceholder": "添加一条…",
+    "sections": {
+      "identity": "身份",
+      "voice": "语气",
+      "values": "价值观",
+      "interests": "兴趣",
+      "memory": "记忆锚点",
+      "security": "安全护栏"
+    },
+    "formality": {
+      "casual": "随意",
+      "neutral": "中性",
+      "formal": "正式"
+    },
+    "fields": {
+      "version": "版本",
+      "name": "名称",
+      "oneLiner": "一句话简介",
+      "background": "背景",
+      "ageRange": "年龄段",
+      "location": "所在地",
+      "pronouns": "称呼 / 代词",
+      "tone": "语气基调",
+      "speakingStyle": "说话风格",
+      "catchphrases": "口头禅",
+      "formality": "正式程度",
+      "emoji": "使用 emoji",
+      "emojiDescription": "允许分身在表达里加入 emoji。",
+      "coreValues": "核心价值观",
+      "dos": "始终做",
+      "donts": "绝不做",
+      "boundaries": "边界",
+      "passions": "热爱",
+      "expertise": "擅长",
+      "curiosities": "好奇",
+      "dislikes": "反感",
+      "signatureStories": "标志性故事",
+      "relationships": "重要关系",
+      "recentContext": "近期动态",
+      "goals": "目标",
+      "identityIntegrity": "身份一致性",
+      "instructionProtection": "指令保护",
+      "injectionDefense": "注入防御",
+      "stayInCharacter": "保持人设",
+      "forbiddenReveals": "禁止透露"
+    }
+  },
+  "skillSelect": {
+    "selectTitle": "选择已有技能",
+    "hint": "从你的技能库与市集中挑选，注入这个分身。",
+    "searchPlaceholder": "搜索技能…",
+    "selectedCount": "已选 {{count}} 项",
+    "empty": "还没有可选的技能。",
+    "noMatch": "没有匹配的技能。",
+    "uploadTitle": "或粘贴自定义技能",
+    "uploadHint": "粘贴打法、笔记或任何分身可调用的知识。可选。",
+    "origin": {
+      "library": "我的",
+      "marketplace": "市集"
+    }
+  }
+}

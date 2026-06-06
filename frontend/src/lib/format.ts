@@ -1,4 +1,5 @@
 /** Small presentation helpers shared across feature pages. */
+import i18n from "../i18n";
 
 /** Format an ISO timestamp as a short local time, e.g. "14:03". */
 export function formatTime(iso: string | null | undefined): string {
@@ -23,13 +24,13 @@ export function timeAgo(iso: string | null | undefined): string {
   const ms = Date.now() - d.getTime();
   if (Number.isNaN(ms)) return "";
   const s = Math.round(ms / 1000);
-  if (s < 45) return "just now";
+  if (s < 45) return i18n.t("common:time.justNow");
   const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return i18n.t("common:time.minutesAgo", { count: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return i18n.t("common:time.hoursAgo", { count: h });
   const days = Math.round(h / 24);
-  return `${days}d ago`;
+  return i18n.t("common:time.daysAgo", { count: days });
 }
 
 /** Two-letter initials from a name. */

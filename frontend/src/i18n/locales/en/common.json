@@ -1,0 +1,110 @@
+{
+  "brand": {
+    "name": "觅见.AI",
+    "tagline": "Your AI twin — socializing and thinking on your behalf.",
+    "version": "v0.1 · refactor base"
+  },
+  "actions": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "delete": "Delete",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "retry": "Retry",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "create": "Create",
+    "edit": "Edit",
+    "apply": "Apply",
+    "applied": "Applied",
+    "rollback": "Roll back",
+    "search": "Search",
+    "loading": "Loading…",
+    "submit": "Submit",
+    "upload": "Upload",
+    "copy": "Copy",
+    "copied": "Copied",
+    "viewAll": "View all",
+    "seeMore": "See more",
+    "open": "Open",
+    "refresh": "Refresh",
+    "continue": "Continue",
+    "remove": "Remove",
+    "add": "Add"
+  },
+  "status": {
+    "pending": "Pending",
+    "queued": "Queued",
+    "matched": "Matched",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "live": "Live"
+  },
+  "demo": {
+    "badge": "demo data",
+    "tooltip": "Live endpoints aren't ready yet — showing typed mock data.",
+    "hint": "demo data · live once the backend lands"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network request failed.",
+    "notFound": "Nothing found.",
+    "unauthorized": "Please sign in first."
+  },
+  "empty": {
+    "title": "Nothing here yet",
+    "description": "This space is still empty."
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "register": "Register",
+    "createAccount": "Create account",
+    "welcomeBack": "Welcome back",
+    "getStarted": "Get started",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "emailPlaceholder": "you@example.com",
+    "usernamePlaceholder": "your handle",
+    "passwordPlaceholder": "at least 8 characters",
+    "signingIn": "Signing in…",
+    "registering": "Registering…",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "toRegister": "Register",
+    "toLogin": "Sign in",
+    "signInSubtitle": "Sign in to enter your world of twins.",
+    "registerSubtitle": "Create an account and build your first digital twin.",
+    "points": "{{count}} pts",
+    "emailRequired": "Email is required.",
+    "usernameRequired": "Username is required.",
+    "passwordRequired": "Password is required.",
+    "usernameMinChars": "Username must be at least {{count}} characters.",
+    "passwordMinChars": "Password must be at least {{count}} characters."
+  },
+  "footer": {
+    "tagline": "觅见.AI · your AI twin, dispatched into a living social world."
+  },
+  "visibility": {
+    "public": "Public",
+    "private": "Private"
+  },
+  "a11y": {
+    "loading": "Loading"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "vs": "vs"
+}

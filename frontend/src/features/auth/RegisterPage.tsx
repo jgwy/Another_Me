@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ApiError, register } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { Button } from "../../components/ui/Button";
@@ -16,6 +17,7 @@ interface FieldErrors {
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const [email, setEmail] = useState("");
@@ -34,11 +36,11 @@ export function RegisterPage() {
 
   const validate = (): boolean => {
     const next: FieldErrors = {};
-    if (!email.trim()) next.email = "Email is required.";
-    if (!username.trim()) next.username = "Username is required.";
-    else if (username.trim().length < 3) next.username = "Username must be at least 3 characters.";
-    if (!password) next.password = "Password is required.";
-    else if (password.length < 6) next.password = "Password must be at least 6 characters.";
+    if (!email.trim()) next.email = t("auth.emailRequired");
+    if (!username.trim()) next.username = t("auth.usernameRequired");
+    else if (username.trim().length < 3) next.username = t("auth.usernameMinChars", { count: 3 });
+    if (!password) next.password = t("auth.passwordRequired");
+    else if (password.length < 6) next.password = t("auth.passwordMinChars", { count: 6 });
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -51,46 +53,46 @@ export function RegisterPage() {
   const formError = mutation.isError
     ? mutation.error instanceof ApiError
       ? mutation.error.detail
-      : "Something went wrong. Please try again."
+      : t("errors.generic")
     : null;
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Spin up an AI twin and send it out to play."
+      title={t("auth.createAccount")}
+      subtitle={t("auth.registerSubtitle")}
       footer={
         <>
-          Already have an account?{" "}
+          {t("auth.haveAccount")}{" "}
           <Link to="/login" className="font-medium text-brand transition-colors hover:text-brand-strong">
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <Input
-          label="Email"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t("auth.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={errors.email}
         />
         <Input
-          label="Username"
+          label={t("auth.username")}
           type="text"
           autoComplete="username"
-          placeholder="your_handle"
+          placeholder={t("auth.usernamePlaceholder")}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           error={errors.username}
         />
         <Input
-          label="Password"
+          label={t("auth.password")}
           type="password"
           autoComplete="new-password"
-          placeholder="At least 6 characters"
+          placeholder={t("auth.passwordPlaceholder")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
@@ -103,7 +105,7 @@ export function RegisterPage() {
         )}
 
         <Button type="submit" size="lg" loading={mutation.isPending} className="mt-1 w-full">
-          Create account
+          {t("auth.createAccount")}
         </Button>
       </form>
     </AuthLayout>

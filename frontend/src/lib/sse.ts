@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./api";
 import type { ConversationStatus, MessageSender } from "./api";
+import type { AgentStatus, TripEncounterStatus, TripStatus } from "./trips";
 
 /* -------------------------------------------------------------------------- */
 /* SSE event payloads — mirror of API contract §4 (LOCKED)                     */
@@ -131,6 +132,125 @@ export function openConversationStream(
   });
 
   // `ping` keepalives and any unknown event names are intentionally ignored.
+
+  source.onerror = (error) => {
+    handlers.onError?.(error);
+  };
+
+  return { close };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Trip journey stream — mirror of API contract §4.2 (LOCKED)                  */
+/* The living-world map renders the travelling-frog journey from these events. */
+/* -------------------------------------------------------------------------- */
+
+export interface TripStatusEvent {
+  trip_id: string;
+  status: TripStatus;
+}
+
+export interface AgentStatusEvent {
+  trip_id: string;
+  agent_id: string;
+  agent_status: AgentStatus;
+}
+
+export interface EncounterStartEvent {
+  trip_id: string;
+  encounter_id: string;
+  seq: number;
+  scenario_id: string;
+  scenario_key: string | null;
+  opponent_agent_id: string | null;
+  conversation_id: string | null;
+}
+
+export interface EncounterEndEvent {
+  trip_id: string;
+  encounter_id: string;
+  seq: number;
+  status: TripEncounterStatus;
+  report_id: string | null;
+  postcard: Record<string, unknown> | null;
+}
+
+export interface TripEndEvent {
+  trip_id: string;
+  status: TripStatus;
+  summary_report_id: string | null;
+}
+
+export interface TripStreamHandlers {
+  /** Optional JWT, appended as `?token=` for private trips. */
+  token?: string;
+  onTripStatus?: (event: TripStatusEvent) => void;
+  onAgentStatus?: (event: AgentStatusEvent) => void;
+  onEncounterStart?: (event: EncounterStartEvent) => void;
+  onEncounterEnd?: (event: EncounterEndEvent) => void;
+  onTripEnd?: (event: TripEndEvent) => void;
+  onError?: (error: Event) => void;
+}
+
+export interface TripStream {
+  close: () => void;
+}
+
+/**
+ * Open a read-only Server-Sent Events stream for a trip's journey (contract
+ * §4.2). `agent_status` drives the world-map avatar's animation state; on
+ * `encounter-start` the caller opens the conversation stream to spectate that
+ * leg; on `trip-end` the underlying {@link EventSource} closes automatically.
+ * Unknown events + `ping` keepalives are ignored.
+ */
+export function openTripStream(tripId: string, handlers: TripStreamHandlers = {}): TripStream {
+  const url = new URL(`${API_BASE_URL}/api/trips/${tripId}/stream`);
+  if (handlers.token) {
+    url.searchParams.set("token", handlers.token);
+  }
+
+  const source = new EventSource(url.toString());
+  let closed = false;
+
+  const close = (): void => {
+    if (closed) return;
+    closed = true;
+    source.close();
+  };
+
+  const parse = <T>(event: MessageEvent): T | null => {
+    try {
+      return JSON.parse(event.data) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  source.addEventListener("trip-status", (event) => {
+    const data = parse<TripStatusEvent>(event as MessageEvent);
+    if (data) handlers.onTripStatus?.(data);
+  });
+
+  source.addEventListener("agent-status", (event) => {
+    const data = parse<AgentStatusEvent>(event as MessageEvent);
+    if (data) handlers.onAgentStatus?.(data);
+  });
+
+  source.addEventListener("encounter-start", (event) => {
+    const data = parse<EncounterStartEvent>(event as MessageEvent);
+    if (data) handlers.onEncounterStart?.(data);
+  });
+
+  source.addEventListener("encounter-end", (event) => {
+    const data = parse<EncounterEndEvent>(event as MessageEvent);
+    if (data) handlers.onEncounterEnd?.(data);
+  });
+
+  source.addEventListener("trip-end", (event) => {
+    const data = parse<TripEndEvent>(event as MessageEvent);
+    if (data) handlers.onTripEnd?.(data);
+    close();
+  });
 
   source.onerror = (error) => {
     handlers.onError?.(error);

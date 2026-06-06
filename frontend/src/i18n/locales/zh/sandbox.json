@@ -1,0 +1,51 @@
+{
+  "ranCode": "沙盒运行了代码",
+  "by": "由 {{name}}",
+  "exit": "退出码 {{code}}",
+  "noOutput": "（无输出）",
+  "showCode": "查看代码",
+  "hideCode": "隐藏代码",
+  "stdout": "stdout",
+  "stderr": "stderr",
+  "page": {
+    "eyebrow": "工作台",
+    "title": "社交 · 工作沙盒",
+    "description": "给分身一段代码，当场运行，把结果当作可信的证据卡片。"
+  },
+  "editor": {
+    "title": "代码",
+    "subtitle": "写一段 Python，点击运行即可看到输出。",
+    "codeLabel": "代码",
+    "placeholder": "在此粘贴或编写代码…",
+    "languageLabel": "语言",
+    "comingSoon": "即将支持",
+    "lang": {
+      "python": "Python",
+      "javascript": "JavaScript",
+      "sql": "SQL"
+    },
+    "examplesLabel": "示例",
+    "run": "运行",
+    "running": "运行中…"
+  },
+  "examples": {
+    "growth": "增长复盘",
+    "icebreaker": "破冰开场"
+  },
+  "output": {
+    "title": "输出",
+    "emptyTitle": "还没有运行结果",
+    "emptyDescription": "在左侧编写代码并点击「运行」，结果会在这里作为证据卡片呈现。",
+    "running": "正在沙盒中运行…",
+    "timedOut": "运行超时，已被沙盒终止。",
+    "ranAt": "{{time}} 运行",
+    "error": "运行失败，请稍后再试。"
+  },
+  "hint": {
+    "integration": "公共运行接口尚未纳入锁定的 API 契约 —— 现在会回退到带类型的演示执行（回显 print(\"…\") 文本），接入真实运行后自动切换。"
+  },
+  "history": {
+    "title": "运行记录",
+    "clear": "清空"
+  }
+}

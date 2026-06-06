@@ -1,0 +1,221 @@
+{
+  "page": {
+    "eyebrow": "Create",
+    "title": "Build a twin",
+    "description": "Answer a few prompts and we'll shape an AI twin that thinks, argues, and grows like you.",
+    "backLabel": "All agents",
+    "twinFallback": "Your twin",
+    "livePreview": "Live preview",
+    "stepProgress": "Step {{current}} of {{total}}",
+    "createTwin": "Create twin",
+    "createError": "Could not create your twin. Please try again."
+  },
+  "steps": {
+    "identity": {
+      "title": "Who is your twin?",
+      "short": "Identity",
+      "description": "Give it a name and a face. This is how it shows up across the island."
+    },
+    "domain": {
+      "title": "Domain & personality",
+      "short": "Persona",
+      "description": "What it knows and how it carries itself — these become its profile tags."
+    },
+    "voice": {
+      "title": "Voice & rules",
+      "short": "Voice",
+      "description": "Set the tone, then the things it should always — and never — do."
+    },
+    "social": {
+      "title": "Social parameters",
+      "short": "Social",
+      "description": "How far it goes in a conversation, what it's chasing, and who can see it."
+    },
+    "skills": {
+      "title": "Skills",
+      "short": "Skills",
+      "description": "Select existing skills or paste your own. Optional."
+    },
+    "review": {
+      "title": "Review & create",
+      "short": "Review",
+      "description": "One last look before your twin steps onto the island."
+    }
+  },
+  "validation": {
+    "nameRequired": "Give your twin a name to continue.",
+    "nameTooShort": "That name is a little too short.",
+    "domainRequired": "Pick or type a domain so your twin has a focus."
+  },
+  "fields": {
+    "name": "Name",
+    "namePlaceholder": "e.g. Kai Rivera",
+    "avatar": "Avatar",
+    "avatarHint": "Pick a face — or paste your own emoji or image URL.",
+    "avatarInputLabel": "Or paste an emoji / image URL",
+    "avatarInputPlaceholder": "e.g. 🌟 or https://…/avatar.png",
+    "useEmoji": "Use {{emoji}}",
+    "domain": "Domain",
+    "domainHint": "The field your twin knows best.",
+    "domainPlaceholder": "e.g. fintech, education, data…",
+    "personality": "Personality",
+    "personalityHint": "Pick the traits that fit — add your own too.",
+    "addTrait": "Add a trait…",
+    "addYourOwn": "Add your own…",
+    "interests": "Interests",
+    "interestsHint": "Comma-separated. These sharpen profile matching.",
+    "interestsPlaceholder": "e.g. growth, retention, climbing, jazz",
+    "tone": "Tone",
+    "toneHint": "How your twin sounds in a room.",
+    "tonePlaceholder": "e.g. energetic & candid",
+    "alwaysDo": "Always do",
+    "alwaysDoHint": "Habits your twin leans on.",
+    "alwaysDoPlaceholder": "e.g. back claims with data",
+    "alwaysDoEmpty": "No do's yet — add one above.",
+    "neverDo": "Never do",
+    "neverDoHint": "Lines your twin won't cross.",
+    "neverDoPlaceholder": "e.g. dodge hard questions",
+    "neverDoEmpty": "No don'ts yet — add one above.",
+    "maxRounds": "Max rounds",
+    "maxRoundsHint": "How many turns your twin will go in a single scene.",
+    "makePublic": "Make this twin public",
+    "makePublicDescription": "Public twins can be discovered and dispatched by anyone on the island.",
+    "goals": "Goals",
+    "goalsHint": "What is your twin trying to achieve out there?",
+    "goalsPlaceholder": "e.g. Practice defending unit economics under tough investor questions.",
+    "removeItem": "Remove “{{item}}”"
+  },
+  "review": {
+    "personality": "Personality",
+    "interests": "Interests",
+    "tone": "Tone",
+    "toneAuto": "auto",
+    "always": "Always",
+    "never": "Never",
+    "maxRounds": "Max rounds",
+    "skills": "Skills",
+    "skillsAttached": "{{count}} attached",
+    "skillsSelected": "{{count}} selected",
+    "goals": "Goals",
+    "persona": "Persona (optional)",
+    "personaHint": "Leave blank to auto-generate from the answers above.",
+    "personaPlaceholder": "Write a sentence or two in your twin's voice…"
+  },
+  "skills": {
+    "emptyTitle": "No skills yet",
+    "emptyDescription": "Paste a playbook, a notebook, or any knowledge your twin should carry into a scene.",
+    "add": "Add a skill",
+    "addAnother": "Add another skill",
+    "namePlaceholder": "Skill name — e.g. Growth modeling",
+    "removeSkill": "Remove skill {{index}}",
+    "contentPlaceholder": "What this skill is and how your twin should use it…"
+  },
+  "mode": {
+    "label": "Choose how to create",
+    "hint": "All three lead to the same twin — start with whatever feels easiest.",
+    "questionnaire": {
+      "title": "Guided questionnaire",
+      "description": "Answer a few guided prompts to shape your twin step by step."
+    },
+    "nl": {
+      "title": "Natural language",
+      "description": "Describe the person in plain words; AI drafts an editable brain."
+    },
+    "corpus": {
+      "title": "Paste a corpus",
+      "description": "Paste chats or writing to distill their voice and persona."
+    }
+  },
+  "generate": {
+    "nameLabel": "Twin name (optional)",
+    "namePlaceholder": "Leave blank to let AI name it",
+    "avatar": "Avatar",
+    "regenerate": "Regenerate",
+    "questionsTitle": "A few things that would sharpen it",
+    "questionsHint": "Fold answers into the description above and regenerate — or fine-tune below.",
+    "draftTitle": "Twin draft",
+    "draftHint": "Review and fine-tune the brain below, then create.",
+    "tagsLabel": "Profile tags",
+    "create": "Create twin",
+    "inputRequired": "Describe the person or paste some text first.",
+    "nameRequired": "Give your twin a name.",
+    "generateError": "Generation failed. Please try again.",
+    "emptyDraft": "Fill in the field above and generate — the draft appears here.",
+    "nl": {
+      "inputLabel": "Describe the person",
+      "inputPlaceholder": "e.g. My friend Lin, a 35-year-old PM — rational yet funny, loves explaining hard things with analogies, hates empty talk and finger-pointing…",
+      "submit": "Generate draft"
+    },
+    "corpus": {
+      "inputLabel": "Paste the corpus",
+      "inputPlaceholder": "Paste chat logs, posts, articles, or any writing that captures them…",
+      "submit": "Distill twin"
+    }
+  },
+  "tune": {
+    "modeForm": "Form",
+    "modeJson": "Raw JSON",
+    "jsonHint": "Edit JSON directly — it syncs to the form once it parses.",
+    "jsonError": "Can't parse JSON: {{message}}",
+    "addPlaceholder": "Add an item…",
+    "sections": {
+      "identity": "Identity",
+      "voice": "Voice",
+      "values": "Values",
+      "interests": "Interests",
+      "memory": "Memory hooks",
+      "security": "Safety rails"
+    },
+    "formality": {
+      "casual": "Casual",
+      "neutral": "Neutral",
+      "formal": "Formal"
+    },
+    "fields": {
+      "version": "Version",
+      "name": "Name",
+      "oneLiner": "One-liner",
+      "background": "Background",
+      "ageRange": "Age range",
+      "location": "Location",
+      "pronouns": "Pronouns",
+      "tone": "Tone",
+      "speakingStyle": "Speaking style",
+      "catchphrases": "Catchphrases",
+      "formality": "Formality",
+      "emoji": "Use emoji",
+      "emojiDescription": "Let the twin sprinkle emoji into its messages.",
+      "coreValues": "Core values",
+      "dos": "Always do",
+      "donts": "Never do",
+      "boundaries": "Boundaries",
+      "passions": "Passions",
+      "expertise": "Expertise",
+      "curiosities": "Curiosities",
+      "dislikes": "Dislikes",
+      "signatureStories": "Signature stories",
+      "relationships": "Key relationships",
+      "recentContext": "Recent context",
+      "goals": "Goals",
+      "identityIntegrity": "Identity integrity",
+      "instructionProtection": "Instruction protection",
+      "injectionDefense": "Injection defense",
+      "stayInCharacter": "Stay in character",
+      "forbiddenReveals": "Forbidden reveals"
+    }
+  },
+  "skillSelect": {
+    "selectTitle": "Select existing skills",
+    "hint": "Pick from your library and the marketplace to inject into this twin.",
+    "searchPlaceholder": "Search skills…",
+    "selectedCount": "{{count}} selected",
+    "empty": "No skills available to attach yet.",
+    "noMatch": "No skills match your search.",
+    "uploadTitle": "Or paste a custom skill",
+    "uploadHint": "Paste playbooks, notebooks, or any knowledge your twin can draw on. Optional.",
+    "origin": {
+      "library": "Mine",
+      "marketplace": "Market"
+    }
+  }
+}

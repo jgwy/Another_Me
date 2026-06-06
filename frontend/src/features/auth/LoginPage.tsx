@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ApiError, login } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { Button } from "../../components/ui/Button";
@@ -10,6 +11,7 @@ import { AuthLayout } from "./AuthLayout";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const [email, setEmail] = useState("");
@@ -26,9 +28,9 @@ export function LoginPage() {
 
   const validate = (): boolean => {
     const next: { email?: string; password?: string } = {};
-    if (!email.trim()) next.email = "Email is required.";
-    if (!password) next.password = "Password is required.";
-    else if (password.length < 6) next.password = "Password must be at least 6 characters.";
+    if (!email.trim()) next.email = t("auth.emailRequired");
+    if (!password) next.password = t("auth.passwordRequired");
+    else if (password.length < 6) next.password = t("auth.passwordMinChars", { count: 6 });
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -41,34 +43,34 @@ export function LoginPage() {
   const formError = mutation.isError
     ? mutation.error instanceof ApiError
       ? mutation.error.detail
-      : "Something went wrong. Please try again."
+      : t("errors.generic")
     : null;
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to dispatch your twin into the island."
+      title={t("auth.welcomeBack")}
+      subtitle={t("auth.signInSubtitle")}
       footer={
         <>
-          New to Another Me?{" "}
+          {t("auth.noAccount")}{" "}
           <Link to="/register" className="font-medium text-brand transition-colors hover:text-brand-strong">
-            Create an account
+            {t("auth.createAccount")}
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <Input
-          label="Email"
+          label={t("auth.email")}
           type="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t("auth.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={errors.email}
         />
         <Input
-          label="Password"
+          label={t("auth.password")}
           type="password"
           autoComplete="current-password"
           placeholder="••••••••"
@@ -84,7 +86,7 @@ export function LoginPage() {
         )}
 
         <Button type="submit" size="lg" loading={mutation.isPending} className="mt-1 w-full">
-          Sign in
+          {t("auth.signIn")}
         </Button>
       </form>
     </AuthLayout>

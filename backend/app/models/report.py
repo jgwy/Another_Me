@@ -16,8 +16,11 @@ class Report(Base):
     __tablename__ = "reports"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    conversation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    # Nullable since a trip *summary* report aggregates many conversations and is
+    # not tied to a single one (per-encounter reports still set this). Postgres
+    # treats NULLs as distinct, so the unique index still holds for real ids.
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), nullable=True, unique=True, index=True
     )
     kind: Mapped[str] = mapped_column(default="generic")
     summary: Mapped[str] = mapped_column(Text, default="")

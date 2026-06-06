@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "市集",
+    "eyebrow": "岛上市集",
+    "description": "浏览、复刻并上架 AI 分身与技能。积分经济为模拟——不涉及真实支付。",
+    "list": "上架内容"
+  },
+  "pts": "{{value}} 积分",
+  "free": "免费",
+  "kind": {
+    "agent": "分身",
+    "skill": "技能"
+  },
+  "forkMode": {
+    "editable": "可编辑",
+    "locked": "锁定"
+  },
+  "notice": {
+    "forkedFree": "已复刻 {{title}} —— 免费。{{destination}}",
+    "forkedPaid": "已复刻 {{title}} —— 花费 {{price}} 积分。{{destination}}",
+    "toAgents": "现已加入你的分身。",
+    "toSkills": "已添加到你的技能。",
+    "viewAgents": "查看分身 →",
+    "forkError": "无法复刻该项。",
+    "fromVersion": "复刻自 v{{version}}。"
+  },
+  "filters": {
+    "searchPlaceholder": "搜索市集…",
+    "searchAria": "搜索市集",
+    "all": "全部",
+    "agents": "分身",
+    "skills": "技能",
+    "popular": "热门",
+    "new": "最新",
+    "liked": "热度"
+  },
+  "results": {
+    "count_one": "{{count}} 个上架项",
+    "count_other": "{{count}} 个上架项",
+    "emptyTitle": "未找到上架内容",
+    "emptyFiltered": "换个搜索或筛选试试。",
+    "empty": "成为第一个在岛上上架分身或技能的人。",
+    "clearFilters": "清除筛选"
+  },
+  "card": {
+    "agentSubtitle": "分身",
+    "skillSubtitle": "技能模块",
+    "noDescription": "暂无描述。",
+    "fork": "复刻",
+    "versionBadge": "v{{version}}",
+    "versions": "查看版本",
+    "publish": "发布新版本",
+    "like": "点赞",
+    "unlike": "取消点赞",
+    "likesLabel": "{{value}} 个赞",
+    "forksLabel": "{{value}} 次复刻",
+    "viewsLabel": "{{value}} 次浏览",
+    "editableHint": "可编辑：复刻后可自由修改。",
+    "lockedHint": "锁定：复刻后不可二次编辑。"
+  },
+  "versions": {
+    "title": "版本历史",
+    "description": "“{{title}}” 的已发布版本，从新到旧。",
+    "loading": "正在加载版本…",
+    "empty": "暂无版本记录。",
+    "current": "当前",
+    "versionLabel": "v{{version}}",
+    "noChangelog": "无更新说明。"
+  },
+  "publish": {
+    "title": "发布新版本",
+    "description": "把 “{{title}}” 的当前内容冻结为一个不可变版本。",
+    "nextVersion": "将发布为 v{{version}}",
+    "changelogLabel": "更新说明",
+    "changelogPlaceholder": "这次更新了什么？（可选）",
+    "changelogHint": "可选——帮助复刻者了解本次变化。",
+    "submit": "发布",
+    "success": "已发布 v{{version}}。",
+    "error": "发布失败，请重试。"
+  },
+  "dispatchCta": {
+    "title": "让你的分身去旅行",
+    "description": "现在无需手动寻找对手——你的分身会自主出发、在岛上邂逅他人，并带回报告与明信片。",
+    "action": "派出旅行"
+  },
+  "opponent": {
+    "title": "寻找对手",
+    "subtitle": "派你的分身进入场景，与另一个分身过招。",
+    "smartTitle": "按资料智能匹配",
+    "smartDescription": "让岛屿根据匹配的资料标签，为你的分身配一个合适的对手。",
+    "findMatch": "寻找匹配",
+    "byIdTitle": "凭分身 ID 连接",
+    "byIdDescription": "已经知道想对阵谁了？粘贴对方的分身 ID，直接发起挑战。",
+    "byIdPlaceholder": "分身 ID…",
+    "byIdAria": "对手分身 ID",
+    "connect": "连接"
+  },
+  "upload": {
+    "title": "上架到市集",
+    "description": "分享一个分身或一个技能模块。他人花费积分即可复刻一份副本。",
+    "submit": "上架",
+    "whatLabel": "你要上架什么？",
+    "kindAgent": "分身",
+    "kindSkill": "技能模块",
+    "loadingAgents": "正在加载你的分身…",
+    "agentLabel": "分身",
+    "agentPlaceholder": "选择一个分身",
+    "agentHint": "买家会复刻这个分身的私有副本。",
+    "noAgentsPrefix": "你还没有任何分身。",
+    "noAgentsLink": "创建一个",
+    "noAgentsSuffix": "即可上架到市集。",
+    "refLabel": "技能引用 ID",
+    "refPlaceholder": "留空则自动生成",
+    "refHint": "可选——用于标识技能模块。技能由标题和描述定义。",
+    "titleLabel": "标题",
+    "titlePlaceholderAgent": "例如：Ada —— 犀利的 VC 分身",
+    "titlePlaceholderSkill": "例如：增长建模（Python）",
+    "titleError": "给你的上架项起个标题。",
+    "descriptionLabel": "描述",
+    "descriptionPlaceholder": "它擅长什么？什么时候值得复刻？",
+    "priceLabel": "价格（积分）",
+    "priceHint": "0 = 免费。积分为模拟——不涉及真实支付。",
+    "priceError": "价格必须为 0 或更大。",
+    "forkModeLabel": "复刻权限",
+    "forkModeHint": "锁定可保护你的原始设定，复刻者将无法修改。",
+    "agentError": "选择你的一个分身。",
+    "submitError": "无法上架你的内容，请重试。"
+  }
+}

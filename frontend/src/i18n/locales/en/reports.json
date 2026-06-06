@@ -1,0 +1,68 @@
+{
+  "page": {
+    "eyebrow": "Report",
+    "fallbackTitle": "Report",
+    "backLabel": "Back to conversation",
+    "backHome": "World"
+  },
+  "tabs": {
+    "report": "Report",
+    "transcript": "Transcript",
+    "evolution": "Evolution"
+  },
+  "kind": {
+    "business": "Business",
+    "empathy": "Empathy",
+    "generic": "Report",
+    "trip_summary": "Trip summary"
+  },
+  "report": {
+    "noBreakdown": "This report has no structured breakdown beyond the summary above.",
+    "generatingTitle": "Report still generating",
+    "generatingDescription": "The scenario has not produced a report yet. Check back once the conversation has wrapped up.",
+    "viewFullReport": "View full report"
+  },
+  "tripSummary": {
+    "title": "Trip summary",
+    "highlights": "Highlights",
+    "encounters": "Encounters",
+    "postcards": "Postcards",
+    "empty": "This trip has no further details yet."
+  },
+  "business": {
+    "recommendation": "Recommendation",
+    "feasibility": "Feasibility",
+    "risks": "Risks",
+    "highlights": "Highlights",
+    "valuationLean": "Valuation lean"
+  },
+  "empathy": {
+    "commonGround": "Common ground",
+    "emotionalInsights": "Emotional insights",
+    "takeaways": "Takeaways",
+    "empty": "No structured empathy breakdown was recorded for this conversation."
+  },
+  "evolution": {
+    "tabEmptyTitle": "No agents to evolve",
+    "tabEmptyDescription": "This conversation has no participants to review yet.",
+    "noneForTitle": "No evolutions for {{name}}",
+    "noneForDescription": "When this agent finishes a scenario, proposed persona, skill, and rule updates will appear here for review.",
+    "proposed": "Proposed evolution",
+    "preview": "Preview",
+    "before": "Before",
+    "after": "After",
+    "persona": "Persona",
+    "skillsAdded": "Skills added",
+    "skillFallback": "Skill",
+    "rules": "Rules"
+  },
+  "replay": {
+    "replay": "Replay",
+    "pause": "Pause",
+    "play": "Play",
+    "restart": "Restart",
+    "showAll": "Show all",
+    "emptyTitle": "No transcript yet",
+    "emptyDescription": "Messages will appear here once the conversation has run."
+  }
+}

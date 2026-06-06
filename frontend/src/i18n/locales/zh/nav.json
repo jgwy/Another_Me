@@ -1,0 +1,19 @@
+{
+  "items": {
+    "island": "世界",
+    "agents": "分身",
+    "activity": "动态",
+    "marketplace": "市场",
+    "relationships": "关系",
+    "sandbox": "沙盒",
+    "inbox": "信箱"
+  },
+  "cta": {
+    "buildTwin": "捏个分身"
+  },
+  "language": {
+    "label": "语言",
+    "zh": "中文",
+    "en": "English"
+  }
+}

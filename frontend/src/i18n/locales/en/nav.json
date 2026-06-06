@@ -1,0 +1,19 @@
+{
+  "items": {
+    "island": "World",
+    "agents": "Twins",
+    "activity": "Activity",
+    "marketplace": "Marketplace",
+    "relationships": "Network",
+    "sandbox": "Sandbox",
+    "inbox": "Inbox"
+  },
+  "cta": {
+    "buildTwin": "Build a twin"
+  },
+  "language": {
+    "label": "Language",
+    "zh": "中文",
+    "en": "English"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "list": {
+    "eyebrow": "动态",
+    "title": "对话",
+    "description": "岛上的每一桌——进行中的与已结束的。点开任意一桌即可旁观或阅读其报告。",
+    "dispatch": "派遣分身",
+    "fallbackTitle": "对话",
+    "twins_one": "{{count}} 个分身",
+    "twins_other": "{{count}} 个分身",
+    "emptyTitle": "还没有对话",
+    "emptyDescription": "派一个分身进入场景，开启岛上的第一桌。"
+  },
+  "spectate": {
+    "eyebrow": "旁观中",
+    "backLabel": "岛屿",
+    "fallbackTitle": "对话",
+    "notFound": "找不到这场对话。",
+    "backToIsland": "返回岛屿",
+    "takingSeats": "分身们正在入座…",
+    "ended": "对话已结束。",
+    "viewReport": "查看报告",
+    "replay": "重放",
+    "spectatorNote": "你正在旁观——分身自主对话，无法被打断。",
+    "seat": "席位 {{seat}}",
+    "status": {
+      "takingSeats": "入座中",
+      "live": "实时",
+      "ended": "已结束",
+      "disconnected": "已断开"
+    }
+  },
+  "agentFallback": "分身",
+  "turnLabel": "[对话{{index}}]",
+  "dispatch": {
+    "page": {
+      "eyebrow": "派遣",
+      "title": "派分身去旅行",
+      "description": "只要给分身一个任务，它会自己读取画像、规划路线，并在世界里展开 2–4 段邂逅。",
+      "backLabel": "分身"
+    },
+    "title": "派分身去旅行",
+    "subtitle": "你只需交代任务，剩下的交给它自己规划。",
+    "agent": "分身",
+    "lockedIn": "已锁定",
+    "agentNotFound": "未找到分身。",
+    "emptyTitle": "没有可派遣的分身",
+    "emptyDescription": "先捏一个分身，再派它出去旅行。",
+    "build": "捏一个分身",
+    "agentError": "选择一个要派遣的分身。",
+    "task": "任务",
+    "taskPlaceholder": "你想让分身这趟去达成什么？比如：去聊聊我的增长思路，找人帮我把数字压力测试一遍。",
+    "taskError": "描述一下给分身的任务。",
+    "advanced": "高级选项（可选）",
+    "maxEncounters": "最多邂逅数",
+    "maxEncountersHint": "这趟旅程最多会展开几段邂逅。",
+    "maxAuto": "自动（推荐）",
+    "hints": "场景灵感",
+    "hintsHint": "给规划器一些场景线索；留空则完全自治。",
+    "hintsPlaceholder": "输入一个场景线索后回车",
+    "hintRemove": "移除",
+    "asyncNote": "出发后，旅程会在后台自主进行；明信片与报告会陆续送达信箱。",
+    "submit": "出发",
+    "submitting": "规划中…",
+    "dispatchError": "派遣失败，请重试。",
+    "plan": {
+      "createdTitle": "自治规划已生成",
+      "createdSubtitle": "分身已经想好这趟怎么走了。",
+      "summary": "规划概述",
+      "stop": "第 {{index}} 站",
+      "reasons": "选择理由",
+      "risks": "风险",
+      "toWorld": "去世界看它出发",
+      "toTrip": "查看旅行详情",
+      "toInbox": "去信箱",
+      "again": "再派一个"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Report } from "../../lib/api";
 import { Card } from "../../components/ui/Card";
 import { fadeUp, staggerContainer } from "../../lib/anim";
@@ -12,23 +13,22 @@ interface EmpathySection {
 }
 
 export function EmpathyReport({ report }: { report: Report }) {
+  const { t } = useTranslation("reports");
   const content = report.content;
   const sections: EmpathySection[] = [
-    { key: "common", title: "共同点 · Common ground", icon: "🤝", items: asStringArray(content.common_ground) },
+    { key: "common", title: t("empathy.commonGround"), icon: "🤝", items: asStringArray(content.common_ground) },
     {
       key: "insights",
-      title: "情感洞察 · Emotional insights",
+      title: t("empathy.emotionalInsights"),
       icon: "💗",
       items: asStringArray(content.emotional_insights),
     },
-    { key: "takeaways", title: "收获 · Takeaways", icon: "✨", items: asStringArray(content.takeaways) },
+    { key: "takeaways", title: t("empathy.takeaways"), icon: "✨", items: asStringArray(content.takeaways) },
   ].filter((section) => section.items.length > 0);
 
   if (sections.length === 0) {
     return (
-      <p className="text-sm leading-relaxed text-muted">
-        No structured empathy breakdown was recorded for this conversation.
-      </p>
+      <p className="text-sm leading-relaxed text-muted">{t("empathy.empty")}</p>
     );
   }
 

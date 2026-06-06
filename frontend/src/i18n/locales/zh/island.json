@@ -1,0 +1,69 @@
+{
+  "eyebrow": "活世界",
+  "title": "觅见世界",
+  "welcome": "欢迎来到觅见世界",
+  "welcomeNamed": "{{name}}，欢迎回到觅见世界。",
+  "subtitle": "派出你的分身，看它思考、出发、在世界里遇见同类、交谈，再带着见闻归来。",
+  "journey": {
+    "label": "旅程",
+    "status": {
+      "idle": "待命",
+      "thinking": "思考中",
+      "departing": "出发",
+      "traveling": "在路上",
+      "meeting": "相遇",
+      "talking": "交谈中",
+      "returning": "归途",
+      "home": "已归来"
+    },
+    "statusHint": {
+      "idle": "分身正在家中待命",
+      "thinking": "正在读取画像、规划这趟旅程",
+      "departing": "已选定目的地，正动身前往",
+      "traveling": "正穿过世界，走向下一段邂逅",
+      "meeting": "遇见了一位同类",
+      "talking": "正在与对方交谈",
+      "returning": "正带着见闻往家走",
+      "home": "带着见闻回到了家"
+    },
+    "encounterStatus": {
+      "pending": "待进行",
+      "running": "进行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "skipped": "跳过"
+    },
+    "encounter": "邂逅",
+    "encounters": "邂逅",
+    "encounterCount": "{{count}} 段邂逅",
+    "currentEncounter": "第 {{index}} 段邂逅",
+    "reason": "选择理由",
+    "risks": "风险",
+    "postcardLabel": "明信片",
+    "noActiveTrip": "暂无进行中的旅程",
+    "dispatchHint": "派出一个分身，让它自己去世界里寻找邂逅。",
+    "viewTrip": "查看旅行"
+  },
+  "world": {
+    "ambient": "世界居民",
+    "buildings": "场景",
+    "home": "家",
+    "plaza": "中央广场",
+    "openScene": "开放中",
+    "focus": "聚焦这段邂逅",
+    "spectate": "围观",
+    "viewReport": "查看报告",
+    "upcomingHint": "分身还没抵达这段邂逅，旅程到达后即可围观。"
+  },
+  "scenarios": {
+    "exchange": "交易所",
+    "cafe": "咖啡馆",
+    "lab": "化学实验室",
+    "coding_club": "Coding Club"
+  },
+  "cta": {
+    "dispatch": "派出分身",
+    "buildTwin": "捏个分身",
+    "letAiGo": "让 AI 自己去找"
+  }
+}

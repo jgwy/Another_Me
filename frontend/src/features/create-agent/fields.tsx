@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { spring, staggerContainer, fadeUp } from "../../lib/anim";
 import { Input } from "../../components/ui/Input";
@@ -115,6 +116,7 @@ export function EmojiPicker({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const { t } = useTranslation("create");
   return (
     <div className="flex flex-col gap-3">
       <motion.div
@@ -141,7 +143,7 @@ export function EmojiPicker({
                   : "bg-surface-2/60 ring-1 ring-border/50 hover:bg-surface-2",
               )}
               aria-pressed={selected}
-              aria-label={`Use ${emoji}`}
+              aria-label={t("fields.useEmoji", { emoji })}
             >
               {emoji}
             </motion.button>
@@ -149,8 +151,8 @@ export function EmojiPicker({
         })}
       </motion.div>
       <Input
-        label="Or paste an emoji / image URL"
-        placeholder="e.g. 🌟 or https://…/avatar.png"
+        label={t("fields.avatarInputLabel")}
+        placeholder={t("fields.avatarInputPlaceholder")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -206,7 +208,7 @@ export function MultiChips({
   value,
   onChange,
   allowCustom = false,
-  customPlaceholder = "Add your own…",
+  customPlaceholder,
 }: {
   options: string[];
   value: string[];
@@ -214,6 +216,7 @@ export function MultiChips({
   allowCustom?: boolean;
   customPlaceholder?: string;
 }) {
+  const { t } = useTranslation(["create", "common"]);
   const [draft, setDraft] = useState("");
 
   const toggle = (option: string) => {
@@ -291,11 +294,11 @@ export function MultiChips({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={customPlaceholder}
+              placeholder={customPlaceholder ?? t("fields.addYourOwn")}
             />
           </div>
           <Button type="button" variant="secondary" onClick={addCustom} disabled={!draft.trim()}>
-            Add
+            {t("common:actions.add")}
           </Button>
         </div>
       )}
@@ -320,6 +323,7 @@ export function ListEditor({
   tone?: "accent" | "danger";
   emptyHint?: string;
 }) {
+  const { t } = useTranslation(["create", "common"]);
   const [draft, setDraft] = useState("");
 
   const add = () => {
@@ -354,7 +358,7 @@ export function ListEditor({
           />
         </div>
         <Button type="button" variant="secondary" onClick={add} disabled={!draft.trim()}>
-          Add
+          {t("common:actions.add")}
         </Button>
       </div>
 
@@ -377,7 +381,7 @@ export function ListEditor({
                   type="button"
                   onClick={() => remove(i)}
                   className="shrink-0 rounded-md px-1.5 text-faint transition-colors hover:text-danger"
-                  aria-label={`Remove “${item}”`}
+                  aria-label={t("fields.removeItem", { item })}
                 >
                   ×
                 </button>

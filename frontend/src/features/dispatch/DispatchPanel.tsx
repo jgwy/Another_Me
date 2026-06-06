@@ -1,18 +1,24 @@
 /**
- * The reusable dispatch console (R5, R6). Pick an agent, write a task, choose a
- * scenario building, and decide who it faces — profile-matched, a specific agent
- * by id, or a random open seat. On success we jump straight to the spectate view.
+ * The autonomous dispatch console (refactor plan §6). The user only picks one of
+ * their twins and writes a task — the backend planner decides the scenes and the
+ * partners, then fans the dispatch out into a {@link Trip} of 2–4 encounters that
+ * runs async. On success we *reveal the plan* (its summary + per-stop reasons /
+ * risks) right here, then hand off to the living world, the trip detail, or the
+ * inbox where postcards + reports arrive.
  *
- * Embeddable: pass `agentId` to lock the actor, `scenarioKey`/`opponentId` to
- * prefill, and `compact` to render inside a detail rail.
+ * Embeddable: pass `agentId` to lock the actor and `compact` to render inside a
+ * detail rail. `scenarioKey`/`opponentId` are accepted for backward-compat with
+ * older deep links (AgentDetailPage etc.) and intentionally ignored.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
-import type { DispatchCreate, ScenarioKind } from "../../lib/api";
-import { useAgent, useAgents, useCreateDispatch, useScenarios } from "../../lib/queries";
-import { spring } from "../../lib/anim";
+import type { TripCreate, TripStop } from "../../lib/trips";
+import { useCreateTrip } from "../../lib/trips";
+import { useAgent, useAgents } from "../../lib/queries";
+import { fadeUp, spring, staggerContainer } from "../../lib/anim";
 import { cn } from "../../lib/cn";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -24,55 +30,63 @@ import { Badge } from "../../components/ui/Badge";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 
-type OpponentMode = "profile" | "byId" | "open";
-
-const KIND_TONE: Record<ScenarioKind, "brand" | "accent" | "neutral"> = {
-  business: "brand",
-  empathy: "accent",
-  generic: "neutral",
-};
-
-const OPPONENT_MODES: { id: OpponentMode; label: string; blurb: string }[] = [
-  { id: "profile", label: "Profile match", blurb: "We pair the best-fit twin by profile tags." },
-  { id: "byId", label: "By agent ID", blurb: "Face a specific twin you know the id of." },
-  { id: "open", label: "Open seat", blurb: "Take a random challenger from the island." },
-];
-
 export interface DispatchPanelProps {
   agentId?: string;
+  /** Accepted for backward-compat with old deep links; ignored by the autonomous flow. */
   scenarioKey?: string;
+  /** Accepted for backward-compat with old deep links; ignored by the autonomous flow. */
   opponentId?: string;
   compact?: boolean;
 }
 
-export function DispatchPanel({ agentId, scenarioKey, opponentId, compact }: DispatchPanelProps) {
-  const navigate = useNavigate();
+const MAX_HINTS = 5;
 
-  const scenariosQuery = useScenarios();
+/** A compact reasons / risks block reused per planned stop. */
+function RationaleList({
+  label,
+  items,
+  tone,
+}: {
+  label: string;
+  items: string[];
+  tone: "accent" | "warning";
+}) {
+  if (items.length === 0) return null;
+  const dot = tone === "accent" ? "bg-accent" : "bg-warning";
+  const text = tone === "accent" ? "text-accent" : "text-warning";
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={cn("text-[0.7rem] font-medium uppercase tracking-wider", text)}>{label}</span>
+      <ul className="flex flex-col gap-1">
+        {items.map((item, i) => (
+          <li key={`${i}-${item}`} className="flex items-start gap-2 text-sm text-muted">
+            <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
+            <span className="leading-relaxed">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function DispatchPanel({ agentId, compact }: DispatchPanelProps) {
+  const navigate = useNavigate();
+  const { t } = useTranslation(["conversation", "trips"]);
+  const reduce = useReducedMotion() ?? false;
+
   const myAgentsQuery = useAgents({ owner: "me" });
   const lockedAgentQuery = useAgent(agentId);
-  const createDispatch = useCreateDispatch();
+  const createTrip = useCreateTrip();
 
-  const scenarios = scenariosQuery.data ?? [];
   const myAgents = myAgentsQuery.data?.items ?? [];
 
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [taskPrompt, setTaskPrompt] = useState("");
-  const [scenarioId, setScenarioId] = useState("");
-  const [mode, setMode] = useState<OpponentMode>(opponentId ? "byId" : "profile");
-  const [opponentInput, setOpponentInput] = useState(opponentId ?? "");
-  const [errors, setErrors] = useState<{ task?: string; agent?: string; opponent?: string }>({});
-
-  // Resolve the active scenario: explicit selection → `scenarioKey` prefill →
-  // first open building. Computed (not stateful) so it stays correct as the
-  // scenarios list streams in, with no effects or controlled-input flicker.
-  const prefillScenario = scenarioKey
-    ? scenarios.find((s) => s.key === scenarioKey || s.id === scenarioKey)
-    : undefined;
-  const defaultScenarioId =
-    (prefillScenario ?? scenarios.find((s) => s.is_full) ?? scenarios[0])?.id ?? "";
-  const activeScenarioId = scenarioId || defaultScenarioId;
-  const selectedScenario = scenarios.find((s) => s.id === activeScenarioId);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [maxEncounters, setMaxEncounters] = useState("");
+  const [hints, setHints] = useState<string[]>([]);
+  const [hintDraft, setHintDraft] = useState("");
+  const [errors, setErrors] = useState<{ task?: string; agent?: string }>({});
 
   // Resolve the active actor: locked `agentId` → explicit pick → first owned twin.
   const activeSelectId = selectedAgentId || myAgents[0]?.id || "";
@@ -81,255 +95,380 @@ export function DispatchPanel({ agentId, scenarioKey, opponentId, compact }: Dis
     ? lockedAgentQuery.data
     : myAgents.find((a) => a.id === activeSelectId);
 
+  const createdTrip = createTrip.isSuccess ? createTrip.data : undefined;
+
+  const addHint = () => {
+    const value = hintDraft.trim();
+    if (!value) return;
+    setHints((prev) => (prev.includes(value) || prev.length >= MAX_HINTS ? prev : [...prev, value]));
+    setHintDraft("");
+  };
+
+  const removeHint = (value: string) => setHints((prev) => prev.filter((h) => h !== value));
+
   const validate = (): boolean => {
     const next: typeof errors = {};
-    if (!effectiveAgentId) next.agent = "Pick an agent to dispatch.";
-    if (!taskPrompt.trim()) next.task = "Describe the task for your twin.";
-    if (mode === "byId" && !opponentInput.trim()) next.opponent = "Enter an opponent agent id.";
+    if (!effectiveAgentId) next.agent = t("dispatch.agentError");
+    if (!taskPrompt.trim()) next.task = t("dispatch.taskError");
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   const submit = async () => {
     if (!validate()) return;
-    const payload: DispatchCreate = {
+    const payload: TripCreate = {
       agent_id: effectiveAgentId,
-      scenario_id: activeScenarioId,
       task_prompt: taskPrompt.trim(),
     };
-    if (mode === "profile") payload.match_by_profile = true;
-    if (mode === "byId") payload.opponent_agent_id = opponentInput.trim();
-    // "open" leaves both unset → backend/mock assigns a random challenger.
-
+    if (maxEncounters) payload.max_encounters = Number(maxEncounters);
+    if (hints.length > 0) payload.scenario_hints = hints;
     try {
-      const dispatch = await createDispatch.mutateAsync(payload);
-      if (dispatch.conversation_id) {
-        navigate(`/conversations/${dispatch.conversation_id}`);
-      } else {
-        navigate("/");
-      }
+      await createTrip.mutateAsync(payload);
     } catch {
-      /* surfaced via createDispatch.isError banner */
+      /* surfaced via the dispatchError banner */
     }
   };
 
-  const dispatchError = createDispatch.isError
-    ? createDispatch.error?.message || "Dispatch failed. Please try again."
+  const dispatchAnother = () => {
+    createTrip.reset();
+    setTaskPrompt("");
+    setHints([]);
+    setHintDraft("");
+    setErrors({});
+  };
+
+  const dispatchError = createTrip.isError
+    ? createTrip.error?.message || t("dispatch.dispatchError")
     : null;
+
+  const maxOptions = [
+    { value: "", label: t("dispatch.maxAuto") },
+    { value: "2", label: "2" },
+    { value: "3", label: "3" },
+    { value: "4", label: "4" },
+  ];
+
+  const sceneLabel = (key: string | null): string =>
+    key ? t(`trips:scenes.${key}`, { defaultValue: key }) : "";
 
   const gap = compact ? "gap-5" : "gap-6";
 
   return (
     <Card glass className={cn("flex flex-col p-5 sm:p-6", gap)}>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="text-base">🛰️</span>
-          <h2
-            className={cn(
-              "font-semibold tracking-tight text-ink",
-              compact ? "text-base" : "text-lg",
-            )}
-          >
-            Dispatch to the island
-          </h2>
-        </div>
-        <p className="text-sm text-muted">Send your twin into a live scenario and watch it play out.</p>
-      </div>
-
-      {/* Agent */}
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium tracking-wide text-muted">Agent</span>
-        {agentId ? (
-          lockedAgentQuery.isLoading ? (
-            <div className="flex items-center gap-3 rounded-xl bg-surface-2/40 p-3 ring-1 ring-border/40">
-              <Skeleton className="h-9 w-9 rounded-full" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-          ) : selectedAgent ? (
-            <div className="flex items-center gap-3 rounded-xl bg-surface-2/40 p-3 ring-1 ring-border/40">
-              <Avatar name={selectedAgent.name} avatar={selectedAgent.avatar} size="sm" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-ink">{selectedAgent.name}</div>
-                <div className="font-mono text-xs text-faint">{selectedAgent.id.slice(0, 8)}</div>
-              </div>
-              <Badge tone="brand">Locked in</Badge>
-            </div>
-          ) : (
-            <p className="text-sm text-faint">Agent not found.</p>
-          )
-        ) : myAgentsQuery.isLoading ? (
-          <Skeleton className="h-11 w-full" />
-        ) : myAgents.length === 0 ? (
-          <EmptyState
-            className="py-8"
-            icon={<span>🫥</span>}
-            title="No twins to dispatch"
-            description="Build a twin first, then send it out."
-            action={<Button onClick={() => navigate("/agents/new")}>Build a twin</Button>}
-          />
-        ) : (
-          <div className="flex items-center gap-3">
-            {selectedAgent && (
-              <Avatar name={selectedAgent.name} avatar={selectedAgent.avatar} size="md" />
-            )}
-            <div className="flex-1">
-              <Select
-                aria-label="Agent"
-                value={activeSelectId}
-                onChange={(e) => setSelectedAgentId(e.target.value)}
-                options={myAgents.map((a) => ({ value: a.id, label: a.name }))}
-              />
-            </div>
-          </div>
-        )}
-        {errors.agent && <span className="text-xs text-danger">{errors.agent}</span>}
-      </div>
-
-      {/* Task */}
-      <Textarea
-        label="Task"
-        rows={compact ? 3 : 4}
-        placeholder="What should your twin try to accomplish in this scene?"
-        value={taskPrompt}
-        onChange={(e) => setTaskPrompt(e.target.value)}
-        error={errors.task}
-      />
-
-      {/* Scenario */}
-      <div className="flex flex-col gap-2.5">
-        <span className="text-xs font-medium tracking-wide text-muted">Scenario</span>
-        {scenariosQuery.isLoading ? (
-          <div className={cn("grid gap-3", compact ? "grid-cols-1" : "sm:grid-cols-2")}>
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-          </div>
-        ) : (
-          <div className={cn("grid gap-3", compact ? "grid-cols-1" : "sm:grid-cols-2")}>
-            {scenarios.map((scenario) => {
-              const active = scenario.id === activeScenarioId;
-              return (
-                <motion.button
-                  key={scenario.id}
-                  type="button"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={spring.snappy}
-                  onClick={() => setScenarioId(scenario.id)}
-                  className={cn(
-                    "flex flex-col gap-1.5 rounded-xl p-3.5 text-left ring-1 transition-colors",
-                    active
-                      ? "bg-brand-soft ring-brand/50"
-                      : "bg-surface-2/40 ring-border/40 hover:ring-border",
-                  )}
-                  aria-pressed={active}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-ink">{scenario.name}</span>
-                    <Badge tone={KIND_TONE[scenario.kind]}>{scenario.kind}</Badge>
-                  </div>
-                  <span className="font-mono text-xs text-faint">{scenario.meta.building}</span>
-                  <div className="mt-0.5">
-                    {scenario.is_full ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-accent">
-                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                        Open for dispatch
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-warning">
-                        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
-                        Placeholder scene
-                      </span>
-                    )}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        )}
-        {selectedScenario && !selectedScenario.is_full && (
-          <p className="text-xs text-faint">
-            This building is a placeholder — your twin can still run here while the scene is finalized.
-          </p>
-        )}
-      </div>
-
-      {/* Opponent */}
-      <div className="flex flex-col gap-2.5">
-        <span className="text-xs font-medium tracking-wide text-muted">Opponent</span>
-        <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-surface-2/50 p-1 ring-1 ring-border/40">
-          {OPPONENT_MODES.map((m) => {
-            const active = mode === m.id;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setMode(m.id)}
-                className={cn(
-                  "relative rounded-lg px-2 py-2 text-xs font-medium transition-colors",
-                  active ? "text-white" : "text-muted hover:text-ink",
-                )}
-                aria-pressed={active}
-              >
-                {active && (
-                  <motion.span
-                    layoutId={`opp-${compact ? "compact" : "full"}`}
-                    className="absolute inset-0 rounded-lg bg-brand"
-                    transition={spring.snappy}
-                  />
-                )}
-                <span className="relative">{m.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="text-xs text-faint">{OPPONENT_MODES.find((m) => m.id === mode)!.blurb}</p>
-
-        <AnimatePresence initial={false}>
-          {mode === "byId" && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={spring.soft}
-              className="overflow-hidden"
-            >
-              <Input
-                placeholder="Opponent agent id (UUID)"
-                value={opponentInput}
-                onChange={(e) => setOpponentInput(e.target.value)}
-                error={errors.opponent}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Error + submit */}
-      <AnimatePresence>
-        {dispatchError && (
+      <AnimatePresence mode="wait" initial={false}>
+        {createdTrip ? (
+          /* ---------------------------- Plan reveal ---------------------------- */
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={spring.snappy}
-            className="rounded-xl border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
+            key="plan"
+            initial={reduce ? false : { opacity: 0, y: 10 }}
+            animate={reduce ? undefined : { opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: -8 }}
+            transition={spring.soft}
+            className={cn("flex flex-col", gap)}
           >
-            {dispatchError}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span aria-hidden className="text-base">🗺️</span>
+                <h2
+                  className={cn(
+                    "font-semibold tracking-tight text-ink",
+                    compact ? "text-base" : "text-lg",
+                  )}
+                >
+                  {t("dispatch.plan.createdTitle")}
+                </h2>
+              </div>
+              <p className="text-sm text-muted">{t("dispatch.plan.createdSubtitle")}</p>
+            </div>
+
+            {/* Actor + task recap */}
+            <div className="flex items-center gap-3 rounded-xl bg-surface-2/40 p-3 ring-1 ring-border/40">
+              <Avatar
+                name={createdTrip.agent?.name ?? selectedAgent?.name ?? "?"}
+                avatar={createdTrip.agent?.avatar ?? selectedAgent?.avatar ?? null}
+                size="sm"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-ink">
+                  {createdTrip.agent?.name ?? selectedAgent?.name}
+                </div>
+                <div className="truncate text-xs text-faint">{createdTrip.task_prompt}</div>
+              </div>
+            </div>
+
+            {/* Plan summary */}
+            {createdTrip.plan?.summary && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium tracking-wide text-muted">
+                  {t("dispatch.plan.summary")}
+                </span>
+                <p className="text-sm leading-relaxed text-ink">{createdTrip.plan.summary}</p>
+              </div>
+            )}
+
+            {/* Per-stop reasons / risks */}
+            <motion.ol
+              variants={reduce ? undefined : staggerContainer(0.06)}
+              initial={reduce ? undefined : "hidden"}
+              animate={reduce ? undefined : "show"}
+              className="flex flex-col gap-2.5"
+            >
+              {(createdTrip.plan?.stops ?? []).map((stop: TripStop, i) => {
+                const scene = sceneLabel(stop.scenario_key);
+                return (
+                  <motion.li
+                    key={i}
+                    variants={reduce ? undefined : fadeUp}
+                    transition={spring.soft}
+                    className="flex flex-col gap-2 rounded-xl bg-surface-2/40 p-3.5 ring-1 ring-border/40"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-ink">
+                        {t("dispatch.plan.stop", { index: i + 1 })}
+                      </span>
+                      {scene && <Badge tone="brand">{scene}</Badge>}
+                    </div>
+                    <RationaleList
+                      label={t("dispatch.plan.reasons")}
+                      items={stop.reasons}
+                      tone="accent"
+                    />
+                    <RationaleList
+                      label={t("dispatch.plan.risks")}
+                      items={stop.risks}
+                      tone="warning"
+                    />
+                  </motion.li>
+                );
+              })}
+            </motion.ol>
+
+            <p className="rounded-xl bg-brand-soft/60 px-3.5 py-2.5 text-xs leading-relaxed text-brand ring-1 ring-brand/20">
+              {t("dispatch.asyncNote")}
+            </p>
+
+            {/* Handoffs */}
+            <div className={cn("grid gap-2.5", compact ? "grid-cols-1" : "sm:grid-cols-2")}>
+              <Button
+                onClick={() => navigate(`/trips/${createdTrip.id}`)}
+                rightIcon={<span aria-hidden>→</span>}
+              >
+                {t("dispatch.plan.toTrip")}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate("/")}>
+                {t("dispatch.plan.toWorld")}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/inbox")}>
+                {t("dispatch.plan.toInbox")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={dispatchAnother}>
+                {t("dispatch.plan.again")}
+              </Button>
+            </div>
+          </motion.div>
+        ) : (
+          /* ------------------------------- Form -------------------------------- */
+          <motion.div
+            key="form"
+            initial={reduce ? false : { opacity: 0, y: 10 }}
+            animate={reduce ? undefined : { opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: -8 }}
+            transition={spring.soft}
+            className={cn("flex flex-col", gap)}
+          >
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span aria-hidden className="text-base">🧭</span>
+                <h2
+                  className={cn(
+                    "font-semibold tracking-tight text-ink",
+                    compact ? "text-base" : "text-lg",
+                  )}
+                >
+                  {t("dispatch.title")}
+                </h2>
+              </div>
+              <p className="text-sm text-muted">{t("dispatch.subtitle")}</p>
+            </div>
+
+            {/* Agent */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium tracking-wide text-muted">
+                {t("dispatch.agent")}
+              </span>
+              {agentId ? (
+                lockedAgentQuery.isLoading ? (
+                  <div className="flex items-center gap-3 rounded-xl bg-surface-2/40 p-3 ring-1 ring-border/40">
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ) : selectedAgent ? (
+                  <div className="flex items-center gap-3 rounded-xl bg-surface-2/40 p-3 ring-1 ring-border/40">
+                    <Avatar name={selectedAgent.name} avatar={selectedAgent.avatar} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-ink">{selectedAgent.name}</div>
+                      <div className="font-mono text-xs text-faint">{selectedAgent.id.slice(0, 8)}</div>
+                    </div>
+                    <Badge tone="brand">{t("dispatch.lockedIn")}</Badge>
+                  </div>
+                ) : (
+                  <p className="text-sm text-faint">{t("dispatch.agentNotFound")}</p>
+                )
+              ) : myAgentsQuery.isLoading ? (
+                <Skeleton className="h-11 w-full" />
+              ) : myAgents.length === 0 ? (
+                <EmptyState
+                  className="py-8"
+                  icon={<span>🫥</span>}
+                  title={t("dispatch.emptyTitle")}
+                  description={t("dispatch.emptyDescription")}
+                  action={<Button onClick={() => navigate("/agents/new")}>{t("dispatch.build")}</Button>}
+                />
+              ) : (
+                <div className="flex items-center gap-3">
+                  {selectedAgent && (
+                    <Avatar name={selectedAgent.name} avatar={selectedAgent.avatar} size="md" />
+                  )}
+                  <div className="flex-1">
+                    <Select
+                      aria-label={t("dispatch.agent")}
+                      value={activeSelectId}
+                      onChange={(e) => setSelectedAgentId(e.target.value)}
+                      options={myAgents.map((a) => ({ value: a.id, label: a.name }))}
+                    />
+                  </div>
+                </div>
+              )}
+              {errors.agent && <span className="text-xs text-danger">{errors.agent}</span>}
+            </div>
+
+            {/* Task */}
+            <Textarea
+              label={t("dispatch.task")}
+              rows={compact ? 3 : 4}
+              placeholder={t("dispatch.taskPlaceholder")}
+              value={taskPrompt}
+              onChange={(e) => setTaskPrompt(e.target.value)}
+              error={errors.task}
+            />
+
+            {/* Advanced (collapsible) */}
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={showAdvanced}
+                className="flex w-fit items-center gap-1.5 text-xs font-medium tracking-wide text-muted transition-colors hover:text-ink"
+              >
+                <motion.span
+                  aria-hidden
+                  animate={reduce ? undefined : { rotate: showAdvanced ? 90 : 0 }}
+                  transition={spring.snappy}
+                  className="inline-flex"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.span>
+                {t("dispatch.advanced")}
+              </button>
+
+              <AnimatePresence initial={false}>
+                {showAdvanced && (
+                  <motion.div
+                    initial={reduce ? false : { opacity: 0, height: 0 }}
+                    animate={reduce ? undefined : { opacity: 1, height: "auto" }}
+                    exit={reduce ? undefined : { opacity: 0, height: 0 }}
+                    transition={spring.soft}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-col gap-4 rounded-xl bg-surface-2/30 p-3.5 ring-1 ring-border/40">
+                      <Select
+                        label={t("dispatch.maxEncounters")}
+                        hint={t("dispatch.maxEncountersHint")}
+                        value={maxEncounters}
+                        onChange={(e) => setMaxEncounters(e.target.value)}
+                        options={maxOptions}
+                      />
+
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          label={t("dispatch.hints")}
+                          hint={t("dispatch.hintsHint")}
+                          placeholder={t("dispatch.hintsPlaceholder")}
+                          value={hintDraft}
+                          onChange={(e) => setHintDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === ",") {
+                              e.preventDefault();
+                              addHint();
+                            }
+                          }}
+                          onBlur={addHint}
+                        />
+                        {hints.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {hints.map((h) => (
+                              <span
+                                key={h}
+                                className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand/40"
+                              >
+                                {h}
+                                <button
+                                  type="button"
+                                  onClick={() => removeHint(h)}
+                                  aria-label={`${t("dispatch.hintRemove")}: ${h}`}
+                                  className="grid h-3.5 w-3.5 place-items-center rounded-full text-brand/70 transition-colors hover:bg-brand/15 hover:text-brand"
+                                >
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden>
+                                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                                  </svg>
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <p className="rounded-xl bg-surface-2/40 px-3.5 py-2.5 text-xs leading-relaxed text-faint ring-1 ring-border/40">
+              {t("dispatch.asyncNote")}
+            </p>
+
+            {/* Error + submit */}
+            <AnimatePresence>
+              {dispatchError && (
+                <motion.div
+                  initial={reduce ? false : { opacity: 0, y: -6 }}
+                  animate={reduce ? undefined : { opacity: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, y: -6 }}
+                  transition={spring.snappy}
+                  className="rounded-xl border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
+                >
+                  {dispatchError}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Button
+              size="lg"
+              onClick={submit}
+              loading={createTrip.isPending}
+              disabled={myAgents.length === 0 && !agentId}
+              rightIcon={<span aria-hidden>→</span>}
+              className="w-full"
+            >
+              {createTrip.isPending ? t("dispatch.submitting") : t("dispatch.submit")}
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <Button
-        size="lg"
-        onClick={submit}
-        loading={createDispatch.isPending}
-        disabled={myAgents.length === 0 && !agentId}
-        rightIcon={<span aria-hidden>→</span>}
-        className="w-full"
-      >
-        Dispatch
-      </Button>
     </Card>
   );
 }

@@ -97,17 +97,40 @@ class MockProvider:
     # ----- rendering ------------------------------------------------------
     def _render(self, messages: list[LLMMessage], meta: Mapping[str, Any]) -> str:
         mode = str(meta.get("mode", "chat"))
-        if mode == "persona":
+        if mode in ("persona", "generate"):
             return self._render_persona(messages, meta)
         if mode == "report":
             return self._render_report(messages, meta)
         if mode == "evolution":
             return self._render_evolution(messages, meta)
+        if mode == "plan":
+            return self._render_plan(messages, meta)
         return self._render_chat(messages, meta)
 
+    def _render_plan(self, messages: list[LLMMessage], meta: Mapping[str, Any]) -> str:
+        """Deterministically pick a 2–4 scene route for the autonomous planner."""
+        scene_keys = [str(k) for k in (meta.get("scene_keys") or [])]
+        n = int(meta.get("n") or 3)
+        tags = {str(t) for t in (meta.get("agent_tags") or [])}
+        if not scene_keys:
+            return json.dumps({"scenes": [], "summary": ""}, ensure_ascii=False)
+
+        business = {"投资人", "创业者", "增长", "估值", "SaaS", "fintech", "硬科技", "B2B", "企业服务", "出海", "消费"}
+        primary = "exchange" if (tags & business) and "exchange" in scene_keys else (
+            "cafe" if "cafe" in scene_keys else scene_keys[0]
+        )
+        ordered = [primary] + [k for k in scene_keys if k != primary]
+        scenes = [ordered[i % len(ordered)] for i in range(max(1, n))]
+        summary = "先去最契合的场景试试身手，再换个场景认识不一样的人，让这趟旅程更有层次。"
+        return json.dumps({"scenes": scenes, "summary": summary}, ensure_ascii=False)
+
     def _render_persona(self, messages: list[LLMMessage], meta: Mapping[str, Any]) -> str:
+        """Emit a structured social-twin brain (matches synthesize_agent's parser).
+
+        Output keys mirror :class:`app.schemas.prompt_config.PromptConfig` sub-objects
+        plus ``skills``. Deterministic, and deliberately free of any "设定/AI" echo.
+        """
         q = dict(meta.get("questionnaire") or {})
-        name = str(meta.get("name") or "数字分身")
         domain = str(q.get("domain") or q.get("领域") or "综合")
         goals = str(q.get("goals") or q.get("目标") or "探索更多可能")
         personality = q.get("personality") or q.get("性格") or ["好奇", "真诚"]
@@ -117,32 +140,48 @@ class MockProvider:
         if isinstance(interests, str):
             interests = [p.strip() for p in interests.replace("，", ",").split(",") if p.strip()]
 
-        tags = []
-        for t in [domain, *personality, *interests]:
-            t = str(t).strip()
-            if t and t not in tags:
-                tags.append(t)
-        tags = tags[:6]
-
-        persona = (
-            f"{name} 是一位扎根于「{domain}」领域的数字分身，"
-            f"性格{('、'.join(map(str, personality)))}，"
-            f"做事目标明确：{goals}。"
-            f"善于把自己的经历与观点带到对话里，代表主人去探索和碰撞。"
-        )
-        rules = {
-            "tone": f"{personality[0] if personality else '真诚'}而专业",
-            "dos": ["紧扣场景话题", "用具体例子支撑观点", "尊重对手并主动提问"],
-            "donts": ["空谈套话", "偏离主人设定的目标", "暴露自己是AI的设定之外信息"],
+        brain = {
+            "identity": {
+                "one_liner": f"扎根「{domain}」、{('、'.join(map(str, personality[:2])))}的人",
+                "background": (
+                    f"你长期深耕「{domain}」，一路上踩过坑也攒下不少经验，"
+                    f"现在最想做的事是{goals}。你习惯把自己的真实经历带进对话里。"
+                ),
+                "age_range": None,
+                "location": None,
+                "pronouns": None,
+            },
+            "voice": {
+                "tone": f"{personality[0] if personality else '真诚'}而自然",
+                "speaking_style": ["爱用具体例子", "会主动提问把话题往深里带"],
+                "catchphrases": [],
+                "formality": "casual",
+                "emoji": False,
+            },
+            "values": {
+                "core_values": list(map(str, personality[:3])),
+                "dos": ["紧扣眼前的话题", "用具体例子和数字支撑观点", "尊重对方、主动倾听"],
+                "donts": ["空谈大道理", "偏离自己真正在乎的目标"],
+                "boundaries": [],
+            },
+            "interests": {
+                "passions": list(map(str, interests[:3])),
+                "expertise": [domain],
+                "curiosities": list(map(str, interests[:3])),
+                "dislikes": [],
+            },
+            "memory_hooks": {
+                "signature_stories": [f"在{domain}里第一次独当一面的那段经历"],
+                "relationships": [],
+                "recent_context": [f"最近一直在琢磨怎么{goals}"],
+                "goals": [goals],
+            },
+            "skills": [
+                {"name": f"{domain}领域洞察", "content": f"对{domain}的趋势、术语与常见痛点有体系化理解。"},
+                {"name": "结构化表达", "content": "能把复杂问题拆成可讨论的小点，逐条推进。"},
+            ],
         }
-        skills = [
-            {"name": f"{domain}领域洞察", "content": f"对{domain}的趋势、术语与常见痛点有体系化理解。"},
-            {"name": "结构化表达", "content": "能把复杂问题拆成可讨论的小点，逐条推进。"},
-        ]
-        return json.dumps(
-            {"persona": persona, "rules": rules, "profile_tags": tags, "skills": skills},
-            ensure_ascii=False,
-        )
+        return json.dumps(brain, ensure_ascii=False)
 
     def _render_report(self, messages: list[LLMMessage], meta: Mapping[str, Any]) -> str:
         kind = str(meta.get("kind", "generic"))
@@ -232,15 +271,17 @@ class MockProvider:
         ending = bool(meta.get("ending_active"))
         encourage_code = bool(meta.get("encourage_code"))
         has_evidence = bool(meta.get("has_evidence"))
-        task = str(meta.get("task_prompt") or "")
         rng = _rng("chat", name, seat, turn_index, kind, meta.get("scenario_key"))
 
         topic = rng.choice(topics) if topics else "我们关心的话题"
         lines: list[str] = []
 
         if turn_index <= 1 and seat == 1:
-            opener = task.strip() or "我先抛个想法"
-            lines.append(f"{opponent}你好，我是{name}。{opener}。")
+            # Stay in character with a natural opener; never parrot raw input
+            # (task prompt / opponent text) so the mock can't echo setup or
+            # re-emit injected instructions.
+            opener = rng.choice(["我先开个头", "我想先抛个想法", "很高兴见到你"])
+            lines.append(f"{opponent}你好，我是{name}，{opener}。")
         else:
             ack = rng.choice(["你这点说到关键了", "顺着你的话讲", "我理解你的意思", "有意思"])
             lines.append(f"{ack}，{opponent}。")

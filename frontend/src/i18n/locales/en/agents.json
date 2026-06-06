@@ -1,0 +1,81 @@
+{
+  "list": {
+    "eyebrow": "The island",
+    "title": "Agents",
+    "description": "Browse the twins roaming the island — yours and the community's. Open one to dispatch it.",
+    "build": "Build a twin",
+    "searchPlaceholder": "Search by name, persona, or tag…",
+    "ownedByMe": "Owned by me",
+    "clear": "Clear",
+    "count_one": "{{count}} twin",
+    "count_other": "{{count}} twins",
+    "empty": {
+      "filteredTitle": "No twins match those filters",
+      "filteredDescription": "Try a broader search or clear the filters to see everyone on the island.",
+      "title": "No twins yet",
+      "description": "Build your first twin and send it out to negotiate, connect, and grow.",
+      "clearFilters": "Clear filters"
+    }
+  },
+  "card": {
+    "rounds_one": "{{count}} round",
+    "rounds_other": "{{count}} rounds",
+    "skills_one": "{{count}} skill",
+    "skills_other": "{{count}} skills"
+  },
+  "detail": {
+    "eyebrow": "Agent",
+    "title": "Agent",
+    "backLabel": "All agents",
+    "publicTwin": "Public twin",
+    "privateTwin": "Private twin",
+    "dispatch": "Dispatch to the island",
+    "tune": "Tune",
+    "tuneTitle": "Tune the twin's brain",
+    "tuneDescription": "Edit the structured persona directly — changes apply on save.",
+    "tuneSave": "Save tuning",
+    "tuneError": "Couldn't save. Please try again.",
+    "brain": "Structured brain",
+    "brainHint": "Shaped by the questionnaire or generator — tune it anytime.",
+    "brainEmpty": "This twin has no structured brain yet. Hit “Tune” to shape it.",
+    "oneLiner": "One-liner",
+    "voiceTone": "Tone",
+    "coreValues": "Core values",
+    "passions": "Passions",
+    "forkedFrom": "Forked from {{id}}",
+    "stats": {
+      "maxRounds": "max rounds",
+      "skills": "skills",
+      "evolutions": "evolutions"
+    },
+    "voiceRules": "Voice & rules",
+    "tone": "Tone",
+    "always": "Always",
+    "never": "Never",
+    "skills": "Skills",
+    "noSkills": "No skills attached yet.",
+    "skillSource": {
+      "questionnaire": "from questionnaire",
+      "upload": "uploaded",
+      "evolved": "evolved",
+      "generated": "generated",
+      "selected": "selected"
+    },
+    "evolution": "Evolution",
+    "proposals_one": "{{count}} proposal",
+    "proposals_other": "{{count}} proposals",
+    "latest": "Latest {{time}}",
+    "evolutionHint": "Your twin proposes refinements after each scene — review them to keep it growing.",
+    "noEvolutions": "No evolutions yet. Dispatch your twin and it'll start proposing improvements.",
+    "diffLabels": {
+      "persona": "persona",
+      "rules": "rules",
+      "skills_added": "new skills",
+      "profile_tags": "tags",
+      "max_rounds": "rounds"
+    },
+    "notFoundTitle": "We couldn't find that twin",
+    "notFoundDescription": "It may have been removed, or the link is off. Head back to the gallery.",
+    "backToAgents": "Back to agents"
+  }
+}

@@ -1,7 +1,10 @@
 import { Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
 import { NavBar } from "./NavBar";
 
 export function AppShell() {
+  const { t } = useTranslation("common");
   return (
     <div className="flex min-h-dvh flex-col">
       <NavBar />
@@ -12,8 +15,8 @@ export function AppShell() {
 
       <footer className="border-t border-border/50">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-faint sm:flex-row sm:px-6">
-          <span>Another Me · your AI twin, dispatched into living scenarios.</span>
-          <span className="font-mono">v0.1 · scaffold</span>
+          <span>{t("footer.tagline")}</span>
+          <span className="font-mono">{t("brand.version")}</span>
         </div>
       </footer>
     </div>

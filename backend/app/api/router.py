@@ -10,17 +10,27 @@ from app.api import (
     conversations,
     dispatches,
     evolutions,
+    inbox,
     marketplace,
+    relationships,
     reports,
+    sandbox,
     scenarios,
+    skills,
+    trips,
 )
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
 api_router.include_router(agents.router)
+api_router.include_router(skills.router)
 api_router.include_router(scenarios.router)
 api_router.include_router(dispatches.router)
+api_router.include_router(trips.router)
 api_router.include_router(conversations.router)
 api_router.include_router(reports.router)
 api_router.include_router(evolutions.router)
 api_router.include_router(marketplace.router)
+api_router.include_router(relationships.router)
+api_router.include_router(inbox.router)
+api_router.include_router(sandbox.router)

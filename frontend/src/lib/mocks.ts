@@ -15,16 +15,32 @@ import type {
   Dispatch,
   DispatchCreate,
   Evolution,
+  InboxListParams,
   MarketplaceCreate,
   MarketplaceForkResult,
   MarketplaceItem,
+  MarketplaceLikeResult,
+  MarketplacePublishBody,
+  MarketplaceVersion,
   Message,
+  Notification,
   Page,
   PointsBalance,
+  PromptConfig,
+  Relationship,
+  RelationshipGraph,
+  RelationshipListParams,
+  RelationshipNode,
   Report,
+  SandboxRunRequest,
+  SandboxRunResult,
   Scenario,
   Skill,
+  SkillCreate,
+  SkillListParams,
+  SkillPatch,
 } from "./api";
+import { emptyPromptConfig } from "./api";
 import type { ConversationStream, ConversationStreamHandlers } from "./sse";
 import {
   CONVERSATION_REPORT,
@@ -35,8 +51,11 @@ import {
   MOCK_EVOLUTIONS,
   MOCK_MARKETPLACE,
   MOCK_MESSAGES,
+  MOCK_NOTIFICATIONS,
+  MOCK_RELATIONSHIPS,
   MOCK_REPORTS,
   MOCK_SCENARIOS,
+  MOCK_SKILLS,
   MOCK_USER,
   nowISO,
 } from "./mockData";
@@ -102,33 +121,66 @@ export function fabricateAgent(input: AgentCreate): Agent {
       .filter(Boolean)
       .join(" ");
 
-  const skills: Skill[] = (input.uploaded_skills ?? []).map((s) => ({
+  const uploaded: Skill[] = (input.uploaded_skills ?? []).map((s) => ({
     id: genId(),
     agent_id: id,
     owner_id: MOCK_USER.id,
     name: s.name,
+    description: s.content,
+    prompt_body: s.prompt_body ?? s.content,
     content: s.content,
-    source: "upload",
+    params: [],
+    tags: [],
+    executable: { kind: "none" as const },
+    source: "upload" as const,
+    is_public: false,
     created_at: now,
+    updated_at: now,
   }));
+
+  // Selected library skills (捏脸 selection step) are injected into the twin.
+  const selected: Skill[] = (input.skill_ids ?? [])
+    .map((sid) => MOCK_SKILLS.find((s) => s.id === sid))
+    .filter((s): s is Skill => !!s)
+    .map((s) => ({ ...clone(s), id: genId(), agent_id: id, source: "selected" as const }));
+
+  const rules = {
+    tone: asString(q.tone) || personality.join(", ") || "thoughtful",
+    dos: asStringArray(q.dos),
+    donts: asStringArray(q.donts),
+  };
+
+  const prompt_config: PromptConfig =
+    input.prompt_config ??
+    (() => {
+      const cfg = emptyPromptConfig(input.name);
+      cfg.identity.one_liner = domain ? `A ${domain} twin` : "A digital twin";
+      cfg.identity.background = persona;
+      cfg.voice.tone = rules.tone;
+      cfg.values.dos = rules.dos;
+      cfg.values.donts = rules.donts;
+      cfg.values.core_values = personality;
+      cfg.interests.passions = interests;
+      cfg.interests.expertise = domain ? [domain] : [];
+      if (goals) cfg.memory_hooks.goals = [goals];
+      return cfg;
+    })();
 
   return {
     id,
     owner_id: MOCK_USER.id,
     name: input.name,
     persona,
-    rules: {
-      tone: asString(q.tone) || personality.join(", ") || "thoughtful",
-      dos: asStringArray(q.dos),
-      donts: asStringArray(q.donts),
-    },
+    rules,
+    prompt_config,
     profile_tags: tags.length ? tags : ["generalist"],
     questionnaire: q,
     avatar: input.avatar ?? pickAvatar(input.name + id),
     max_rounds: input.max_rounds ?? 8,
     is_public: input.is_public ?? false,
     forked_from: null,
-    skills,
+    source_version: null,
+    skills: [...uploaded, ...selected],
     created_at: now,
     updated_at: now,
   };
@@ -287,8 +339,12 @@ function createStore() {
   const dispatches: Dispatch[] = clone(MOCK_DISPATCHES);
   const evolutions: Evolution[] = clone(MOCK_EVOLUTIONS);
   const marketplace: MarketplaceItem[] = clone(MOCK_MARKETPLACE);
+  const marketplaceVersions: Record<string, MarketplaceVersion[]> = {};
   const reports: Report[] = clone(MOCK_REPORTS);
   const messages: Record<string, Message[]> = clone(MOCK_MESSAGES);
+  const skills: Skill[] = clone(MOCK_SKILLS);
+  const notifications: Notification[] = clone(MOCK_NOTIFICATIONS);
+  const relationships: Relationship[] = clone(MOCK_RELATIONSHIPS);
   let points = MOCK_USER.points;
 
   function matchOpponent(agent: Agent, byProfile: boolean): Agent {
@@ -489,7 +545,7 @@ function createStore() {
     listMarketplace(params?: {
       kind?: string;
       q?: string;
-      sort?: "downloads" | "recent";
+      sort?: "downloads" | "recent" | "likes";
       limit?: number;
       offset?: number;
     }): Page<MarketplaceItem> {
@@ -501,13 +557,11 @@ function createStore() {
           (m) => m.title.toLowerCase().includes(q) || (m.description ?? "").toLowerCase().includes(q),
         );
       }
-      const sorted = [...items].sort((a, b) =>
-        params?.sort === "downloads"
-          ? b.downloads - a.downloads
-          : a.created_at < b.created_at
-            ? 1
-            : -1,
-      );
+      const sorted = [...items].sort((a, b) => {
+        if (params?.sort === "downloads") return b.downloads - a.downloads;
+        if (params?.sort === "likes") return (b.likes ?? 0) - (a.likes ?? 0);
+        return a.created_at < b.created_at ? 1 : -1;
+      });
       return paginate(sorted, params?.limit, params?.offset);
     },
     addMarketplaceItem(input: MarketplaceCreate): MarketplaceItem {
@@ -528,28 +582,236 @@ function createStore() {
     forkMarketplaceItem(id: string): MarketplaceForkResult {
       const item = marketplace.find((m) => m.id === id);
       if (!item) throw new Error("not found");
+      if (points < item.price_points) throw new Error("not enough points");
       item.downloads += 1;
+      item.forks = item.downloads; // `downloads` is the v1 alias of `forks`
       points = Math.max(0, points - item.price_points);
+      const sourceVersion = item.version ?? 1;
       let agent: Agent | null = null;
       let skill: Skill | null = null;
       if (item.kind === "agent") {
         const src = store.getAgent(item.ref_id);
         if (src) {
-          agent = { ...clone(src), id: genId(), owner_id: MOCK_USER.id, forked_from: src.id, is_public: false, created_at: nowISO(), updated_at: nowISO() };
+          agent = {
+            ...clone(src),
+            id: genId(),
+            owner_id: MOCK_USER.id,
+            forked_from: src.id,
+            source_version: sourceVersion,
+            is_public: false,
+            created_at: nowISO(),
+            updated_at: nowISO(),
+          };
           agents.unshift(agent);
         }
       } else {
+        const src = skills.find((s) => s.id === item.ref_id);
         skill = {
           id: genId(),
           agent_id: null,
           owner_id: MOCK_USER.id,
-          name: item.title,
-          content: item.description ?? "",
-          source: "upload",
+          name: src?.name ?? item.title,
+          description: src?.description ?? item.description ?? "",
+          prompt_body: src?.prompt_body ?? src?.content ?? item.description ?? "",
+          content: src?.content ?? item.description ?? "",
+          params: src?.params ?? [],
+          tags: src?.tags ?? [],
+          executable: src?.executable ?? { kind: "none" },
+          source: "selected",
+          is_public: false,
           created_at: nowISO(),
+          updated_at: nowISO(),
         };
+        skills.unshift(skill);
       }
-      return { item: clone(item), agent, skill };
+      return { item: clone(item), agent, skill, source_version: sourceVersion };
+    },
+
+    likeMarketplaceItem(id: string): MarketplaceLikeResult {
+      const item = marketplace.find((m) => m.id === id);
+      if (!item) throw new Error("not found");
+      const liked = !item.liked;
+      item.liked = liked;
+      item.likes = Math.max(0, (item.likes ?? 0) + (liked ? 1 : -1));
+      return { item_id: id, likes: item.likes, liked };
+    },
+    listMarketplaceVersions(id: string): MarketplaceVersion[] {
+      const item = marketplace.find((m) => m.id === id);
+      if (!item) return [];
+      if (!marketplaceVersions[id]) {
+        const latest = item.version ?? 1;
+        marketplaceVersions[id] = Array.from({ length: latest }, (_, i) => ({
+          id: genId(),
+          item_id: id,
+          version: latest - i,
+          snapshot: item.snapshot ?? {},
+          changelog: latest - i === 1 ? "首次发布" : `v${latest - i} 更新`,
+          created_at: nowISO(),
+        }));
+      }
+      return marketplaceVersions[id]!;
+    },
+    publishMarketplaceItem(id: string, body?: MarketplacePublishBody): MarketplaceItem {
+      const item = marketplace.find((m) => m.id === id);
+      if (!item) throw new Error("not found");
+      const next = (item.version ?? 1) + 1;
+      item.version = next;
+      item.updated_at = nowISO();
+      const versions = store.listMarketplaceVersions(id);
+      versions.unshift({
+        id: genId(),
+        item_id: id,
+        version: next,
+        snapshot: item.snapshot ?? {},
+        changelog: body?.changelog ?? null,
+        created_at: nowISO(),
+      });
+      return clone(item);
+    },
+
+    /* skills (standalone v2) */
+    listSkills(params?: SkillListParams): Page<Skill> {
+      let items = skills;
+      if (params?.q) {
+        const q = params.q.toLowerCase();
+        items = items.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) ||
+            (s.description ?? "").toLowerCase().includes(q) ||
+            (s.tags ?? []).some((t) => t.toLowerCase().includes(q)),
+        );
+      }
+      if (params?.tags) {
+        const want = params.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+        items = items.filter((s) => want.every((w) => (s.tags ?? []).some((t) => t.toLowerCase() === w)));
+      }
+      if (params?.owner) {
+        const owner = params.owner === "me" ? MOCK_USER.id : params.owner;
+        items = items.filter((s) => s.owner_id === owner);
+      }
+      if (params?.agent_id) items = items.filter((s) => s.agent_id === params.agent_id);
+      if (params?.is_public !== undefined) items = items.filter((s) => !!s.is_public === params.is_public);
+      return paginate(items, params?.limit, params?.offset);
+    },
+    getSkill(id: string): Skill | undefined {
+      return skills.find((s) => s.id === id);
+    },
+    createSkill(body: SkillCreate): Skill {
+      const now = nowISO();
+      const skill: Skill = {
+        id: genId(),
+        agent_id: body.agent_id ?? null,
+        owner_id: MOCK_USER.id,
+        name: body.name,
+        description: body.description ?? "",
+        prompt_body: body.prompt_body,
+        content: body.prompt_body,
+        params: body.params ?? [],
+        tags: body.tags ?? [],
+        executable: body.executable ?? { kind: "none" },
+        source: body.source ?? "upload",
+        is_public: body.is_public ?? false,
+        created_at: now,
+        updated_at: now,
+      };
+      skills.unshift(skill);
+      return skill;
+    },
+    patchSkill(id: string, body: SkillPatch): Skill | undefined {
+      const s = skills.find((x) => x.id === id);
+      if (!s) return undefined;
+      if (body.prompt_body !== undefined) {
+        s.prompt_body = body.prompt_body;
+        s.content = body.prompt_body;
+      }
+      if (body.name !== undefined) s.name = body.name;
+      if (body.description !== undefined) s.description = body.description;
+      if (body.params !== undefined) s.params = body.params;
+      if (body.tags !== undefined) s.tags = body.tags;
+      if (body.executable !== undefined) s.executable = body.executable;
+      if (body.is_public !== undefined) s.is_public = body.is_public;
+      s.updated_at = nowISO();
+      return s;
+    },
+    deleteSkill(id: string): void {
+      const i = skills.findIndex((s) => s.id === id);
+      if (i >= 0) skills.splice(i, 1);
+    },
+
+    /* inbox / notifications */
+    listInbox(params?: InboxListParams): Page<Notification> {
+      let items = notifications;
+      if (params?.unread) items = items.filter((n) => !n.read);
+      return paginate(items, params?.limit, params?.offset);
+    },
+    getUnreadCount(): { count: number } {
+      return { count: notifications.filter((n) => !n.read).length };
+    },
+    markNotificationRead(id: string): Notification | undefined {
+      const n = notifications.find((x) => x.id === id);
+      if (!n) return undefined;
+      n.read = true;
+      n.read_at = nowISO();
+      return n;
+    },
+    markAllNotificationsRead(): { updated: number } {
+      let updated = 0;
+      for (const n of notifications) {
+        if (!n.read) {
+          n.read = true;
+          n.read_at = nowISO();
+          updated += 1;
+        }
+      }
+      return { updated };
+    },
+
+    /* relationships / graph */
+    listRelationships(params?: RelationshipListParams): Page<Relationship> {
+      let items = relationships;
+      if (params?.agent_id) {
+        items = items.filter(
+          (r) => r.from_agent_id === params.agent_id || r.to_agent_id === params.agent_id,
+        );
+      }
+      if (params?.type) items = items.filter((r) => r.type === params.type);
+      return paginate(items, params?.limit, params?.offset);
+    },
+    getRelationshipGraph(agentId?: string): RelationshipGraph {
+      const edges = agentId
+        ? relationships.filter((r) => r.from_agent_id === agentId || r.to_agent_id === agentId)
+        : relationships;
+      const byId = new Map<string, RelationshipNode>();
+      for (const r of edges) {
+        for (const a of [r.from_agent, r.to_agent]) {
+          if (a && !byId.has(a.id)) {
+            const owned = agents.some((ag) => ag.id === a.id && ag.owner_id === MOCK_USER.id);
+            byId.set(a.id, { agent: a, owned });
+          }
+        }
+      }
+      return { nodes: [...byId.values()], edges: clone(edges) };
+    },
+
+    /* sandbox run (standalone workspace) */
+    runSandbox(body: SandboxRunRequest): SandboxRunResult {
+      const language = body.language ?? "python";
+      const code = body.code ?? "";
+      // Surface any print(...) string literals so simple demos show output.
+      const prints = [...code.matchAll(/print\(\s*(['"])([\s\S]*?)\1\s*\)/g)].map((m) => m[2] ?? "");
+      const stdout = prints.length
+        ? prints.join("\n") + "\n"
+        : code.trim()
+          ? "(已在沙盒中执行 · 无 stdout 输出)\n"
+          : "";
+      return {
+        stdout,
+        stderr: "",
+        exit_code: 0,
+        duration_ms: 40 + Math.floor(Math.random() * 120),
+        timed_out: false,
+        language,
+      };
     },
 
     getPoints(): PointsBalance {

@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "Marketplace",
+    "eyebrow": "Island marketplace",
+    "description": "Browse, fork, and list AI twins and skills. The points economy is simulated — no real payment.",
+    "list": "List something"
+  },
+  "pts": "{{value}} pts",
+  "free": "Free",
+  "kind": {
+    "agent": "Agent",
+    "skill": "Skill"
+  },
+  "forkMode": {
+    "editable": "Editable",
+    "locked": "Locked"
+  },
+  "notice": {
+    "forkedFree": "Forked {{title}} — free. {{destination}}",
+    "forkedPaid": "Forked {{title}} — {{price}} pts spent. {{destination}}",
+    "toAgents": "Now in your agents.",
+    "toSkills": "Added to your skills.",
+    "viewAgents": "View agents →",
+    "forkError": "Could not fork this item.",
+    "fromVersion": "Forked from v{{version}}."
+  },
+  "filters": {
+    "searchPlaceholder": "Search the market…",
+    "searchAria": "Search marketplace",
+    "all": "All",
+    "agents": "Agents",
+    "skills": "Skills",
+    "popular": "Popular",
+    "new": "New",
+    "liked": "Most liked"
+  },
+  "results": {
+    "count_one": "{{count}} listing",
+    "count_other": "{{count}} listings",
+    "emptyTitle": "No listings found",
+    "emptyFiltered": "Try a different search or filter.",
+    "empty": "Be the first to list an agent or skill on the island.",
+    "clearFilters": "Clear filters"
+  },
+  "card": {
+    "agentSubtitle": "Agent twin",
+    "skillSubtitle": "Skill module",
+    "noDescription": "No description provided.",
+    "fork": "Fork",
+    "versionBadge": "v{{version}}",
+    "versions": "Versions",
+    "publish": "Publish version",
+    "like": "Like",
+    "unlike": "Unlike",
+    "likesLabel": "{{value}} likes",
+    "forksLabel": "{{value}} forks",
+    "viewsLabel": "{{value}} views",
+    "editableHint": "Editable — forkers can freely modify their copy.",
+    "lockedHint": "Locked — copies can't be edited after forking."
+  },
+  "versions": {
+    "title": "Version history",
+    "description": "Published versions of “{{title}}”, newest first.",
+    "loading": "Loading versions…",
+    "empty": "No versions yet.",
+    "current": "Current",
+    "versionLabel": "v{{version}}",
+    "noChangelog": "No changelog provided."
+  },
+  "publish": {
+    "title": "Publish a new version",
+    "description": "Freeze the current source of “{{title}}” as an immutable version.",
+    "nextVersion": "Will publish as v{{version}}",
+    "changelogLabel": "Changelog",
+    "changelogPlaceholder": "What changed in this version? (optional)",
+    "changelogHint": "Optional — helps people who fork understand what changed.",
+    "submit": "Publish",
+    "success": "Published v{{version}}.",
+    "error": "Could not publish. Please try again."
+  },
+  "dispatchCta": {
+    "title": "Send your twin on a trip",
+    "description": "No more hunting for an opponent by hand — your twin sets off on its own, meets others across the island, and brings back reports and postcards.",
+    "action": "Dispatch a trip"
+  },
+  "opponent": {
+    "title": "Find an opponent",
+    "subtitle": "Send your twin into a scenario against another agent.",
+    "smartTitle": "Smart match by profile",
+    "smartDescription": "Let the island pair your twin with a compatible opponent from matching profile tags.",
+    "findMatch": "Find a match",
+    "byIdTitle": "Connect by Agent ID",
+    "byIdDescription": "Already know who you want to face? Paste their agent ID to challenge them directly.",
+    "byIdPlaceholder": "agent-id…",
+    "byIdAria": "Opponent agent ID",
+    "connect": "Connect"
+  },
+  "upload": {
+    "title": "List on the marketplace",
+    "description": "Share an agent twin or a skill module. Others spend points to fork a copy.",
+    "submit": "List it",
+    "whatLabel": "What are you listing?",
+    "kindAgent": "Agent twin",
+    "kindSkill": "Skill module",
+    "loadingAgents": "Loading your agents…",
+    "agentLabel": "Agent",
+    "agentPlaceholder": "Select an agent",
+    "agentHint": "Buyers fork a private copy of this twin.",
+    "noAgentsPrefix": "You don't have any agents yet. ",
+    "noAgentsLink": "Create one",
+    "noAgentsSuffix": " to list it on the market.",
+    "refLabel": "Skill reference ID",
+    "refPlaceholder": "Auto-generated if left blank",
+    "refHint": "Optional — identifies the skill module. The title and description define the skill.",
+    "titleLabel": "Title",
+    "titlePlaceholderAgent": "e.g. Ada — Sharp VC Twin",
+    "titlePlaceholderSkill": "e.g. Growth modeling (Python)",
+    "titleError": "Give your listing a title.",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What does it do well? When should someone fork it?",
+    "priceLabel": "Price (points)",
+    "priceHint": "0 = free. Points are simulated — no real payment.",
+    "priceError": "Price must be 0 or more.",
+    "forkModeLabel": "Fork mode",
+    "forkModeHint": "Locked protects your original — forkers won't be able to modify it.",
+    "agentError": "Pick one of your agents.",
+    "submitError": "Could not list your item. Please try again."
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 
 export interface SpinnerProps {
@@ -6,10 +7,11 @@ export interface SpinnerProps {
 }
 
 export function Spinner({ className, size = 18 }: SpinnerProps) {
+  const { t } = useTranslation("common");
   return (
     <span
       role="status"
-      aria-label="Loading"
+      aria-label={t("a11y.loading")}
       style={{ width: size, height: size }}
       className={cn(
         "inline-block animate-spin rounded-full border-2 border-current border-t-transparent",

@@ -1,0 +1,74 @@
+{
+  "nav": "Trips",
+  "page": {
+    "eyebrow": "Trip",
+    "title": "Trip detail",
+    "backLabel": "World"
+  },
+  "status": {
+    "planning": "Planning",
+    "traveling": "Traveling",
+    "in_encounter": "In encounter",
+    "returning": "Returning",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+  "agentStatus": {
+    "idle": "Idle",
+    "thinking": "Thinking",
+    "departing": "Departing",
+    "traveling": "Traveling",
+    "meeting": "Meeting",
+    "talking": "Talking",
+    "returning": "Returning",
+    "home": "Home"
+  },
+  "scenes": {
+    "exchange": "Exchange",
+    "cafe": "Café",
+    "lab": "Lab",
+    "coding_club": "Coding Club"
+  },
+  "plan": {
+    "title": "Autonomous plan",
+    "summary": "Plan summary",
+    "stops": "Itinerary",
+    "reasons": "Why this match",
+    "risks": "Risks",
+    "planning": "The twin is reading the profile and planning this trip…"
+  },
+  "encounters": {
+    "title": "Encounters",
+    "count": "{{count}} encounters",
+    "spectate": "Spectate",
+    "report": "View report",
+    "postcard": "Postcard",
+    "withPartner": "Partner",
+    "empty": "Each leg of the journey will appear here once planning is done."
+  },
+  "encounterStatus": {
+    "pending": "Pending",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "skipped": "Skipped"
+  },
+  "summary": {
+    "title": "Trip summary report",
+    "view": "View summary",
+    "pending": "A summary report is generated once all encounters finish."
+  },
+  "actions": {
+    "cancel": "Cancel trip",
+    "cancelling": "Cancelling…",
+    "spectate": "Spectate current encounter",
+    "toWorld": "Back to world",
+    "toInbox": "Open inbox"
+  },
+  "task": "Task",
+  "empty": {
+    "title": "Trip not found",
+    "description": "It may have ended, been cancelled, or only exists in demo data."
+  }
+}

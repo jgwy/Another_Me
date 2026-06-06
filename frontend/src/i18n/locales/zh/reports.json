@@ -1,0 +1,68 @@
+{
+  "page": {
+    "eyebrow": "复盘报告",
+    "fallbackTitle": "复盘报告",
+    "backLabel": "返回对话",
+    "backHome": "世界"
+  },
+  "tabs": {
+    "report": "报告",
+    "transcript": "对话记录",
+    "evolution": "进化"
+  },
+  "kind": {
+    "business": "商业评估",
+    "empathy": "见闻共情",
+    "generic": "复盘",
+    "trip_summary": "旅行总结"
+  },
+  "report": {
+    "noBreakdown": "除上方摘要外，本报告没有更详细的结构化拆解。",
+    "generatingTitle": "报告生成中",
+    "generatingDescription": "该场景尚未生成报告。对话结束后再回来查看吧。",
+    "viewFullReport": "查看完整报告"
+  },
+  "tripSummary": {
+    "title": "旅行总结",
+    "highlights": "旅途亮点",
+    "encounters": "途中邂逅",
+    "postcards": "明信片",
+    "empty": "这趟旅行还没有更详细的内容。"
+  },
+  "business": {
+    "recommendation": "建议",
+    "feasibility": "可行性",
+    "risks": "风险",
+    "highlights": "亮点",
+    "valuationLean": "估值倾向"
+  },
+  "empathy": {
+    "commonGround": "共同点",
+    "emotionalInsights": "情感洞察",
+    "takeaways": "收获",
+    "empty": "本次对话没有记录结构化的共情拆解。"
+  },
+  "evolution": {
+    "tabEmptyTitle": "没有可进化的分身",
+    "tabEmptyDescription": "这场对话还没有可供复盘的参与者。",
+    "noneForTitle": "{{name}} 暂无进化记录",
+    "noneForDescription": "当该分身完成一个场景后，拟议的人设、技能与规则更新会显示在这里供你审阅。",
+    "proposed": "拟议进化",
+    "preview": "预览",
+    "before": "之前",
+    "after": "之后",
+    "persona": "人设",
+    "skillsAdded": "新增技能",
+    "skillFallback": "技能",
+    "rules": "规则"
+  },
+  "replay": {
+    "replay": "重放",
+    "pause": "暂停",
+    "play": "播放",
+    "restart": "重新开始",
+    "showAll": "显示全部",
+    "emptyTitle": "还没有对话记录",
+    "emptyDescription": "对话运行后，消息会显示在这里。"
+  }
+}
