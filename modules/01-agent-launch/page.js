@@ -24,14 +24,16 @@ const customCategoryInput = form.querySelector('input[name="customCategory"]');
 const questionnaireToggle = document.querySelector('#questionnaireToggle');
 const questionnairePanel = document.querySelector('#questionnairePanel');
 const moduleTitle = document.querySelector('#moduleTitle');
+const runtimeBadge = document.querySelector('#runtimeBadge');
 
 const historyKey = 'another-me-agent-launch-history';
 let conversations = JSON.parse(localStorage.getItem(historyKey) || '[]');
-let activeConversationId = conversations[0]?.id || crypto.randomUUID();
-let activeAgentId = localStorage.getItem('another-me-active-agent-id') || '';
-let activeAgentName = localStorage.getItem('another-me-active-agent-name') || '';
+let activeConversationId = crypto.randomUUID();
+let activeAgentId = '';
+let activeAgentName = '觅见AI';
 let currentMcp = JSON.parse(localStorage.getItem('another-me-current-mcp') || 'null');
 let agents = [];
+let lastProfileMarkdown = '';
 
 const saveHistory = () => localStorage.setItem(historyKey, JSON.stringify(conversations.slice(0, 40)));
 
@@ -71,6 +73,20 @@ const renderHistory = () => {
       activeConversationId = item.id;
       renderMessages();
     });
+    button.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      const shouldDelete = window.confirm('删除这条对话记录？已保存为草稿或已发布的 Agent 不会被删除。');
+      if (!shouldDelete) return;
+      conversations = conversations.filter((entry) => entry.id !== item.id);
+      saveHistory();
+      if (activeConversationId === item.id) {
+        activeConversationId = crypto.randomUUID();
+        messages.replaceChildren();
+        emptyState.hidden = false;
+        resetActiveAgent('已删除当前对话，当前测试对象：觅见AI');
+      }
+      renderHistory();
+    });
     return button;
   }));
 };
@@ -89,13 +105,25 @@ const loadAgents = async () => {
 };
 
 const selectAgent = (agent) => {
-  const displayName = agent.name || '未命名';
+  const displayName = agent.name || '觅见AI';
   activeAgentId = agent.id;
   activeAgentName = displayName;
+  lastProfileMarkdown = String(agent.skillPrompt || '').startsWith('# PROFILE.md') ? agent.skillPrompt : '';
   localStorage.setItem('another-me-active-agent-id', activeAgentId);
   localStorage.setItem('another-me-active-agent-name', activeAgentName);
+  runtimeBadge.textContent = `当前 Agent：${displayName}`;
   setStatus(chatStatusNode, `当前测试对象：${displayName}`, 'ok');
   setStatus(statusNode, `已选中 ${displayName}。中间对话会使用这个 Agent。`, 'ok');
+};
+
+const resetActiveAgent = (message = '当前测试对象：觅见AI') => {
+  activeAgentId = '';
+  activeAgentName = '觅见AI';
+  lastProfileMarkdown = '';
+  localStorage.removeItem('another-me-active-agent-id');
+  localStorage.removeItem('another-me-active-agent-name');
+  runtimeBadge.textContent = '当前 Agent：觅见AI';
+  setStatus(chatStatusNode, message, 'ok');
 };
 
 const renderAgents = () => {
@@ -104,7 +132,7 @@ const renderAgents = () => {
     button.type = 'button';
     button.className = 'history-item';
     button.innerHTML = `<strong></strong><span></span>`;
-    const displayName = agent.name || '未命名';
+    const displayName = agent.name || '觅见AI';
     button.querySelector('strong').textContent = displayName;
     button.querySelector('span').textContent = `${agentStatusLabel(agent.status)} · ${agent.tagline || agent.category || '未填写简介'}`;
     button.addEventListener('click', () => {
@@ -165,11 +193,83 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
+const buildLiveProfile = () => {
+  const values = Object.fromEntries(new FormData(form).entries());
+  const name = String(values.name || '').trim();
+  const owner = String(values.owner || '').trim();
+  const tagline = String(values.tagline || '').trim();
+  const description = String(values.description || '').trim();
+  const category = String(values.category === '其他' ? values.customCategory || '' : values.category || '').trim();
+  const hasMcp = Boolean(currentMcp?.name || currentMcp?.endpoint || currentMcp?.purpose);
+  if (!name && !owner && !tagline && !description && !category && !hasMcp) return '';
+  const identity = [
+    name ? `- Agent Name: ${name}` : '',
+    owner ? `- Owner: ${owner}` : '',
+    category ? `- Category: ${category}` : '',
+  ].filter(Boolean);
+  return [
+    '# PROFILE.md',
+    '',
+    identity.length ? '## Identity' : '',
+    ...identity,
+    identity.length ? '' : '',
+    tagline ? '## One-Line Introduction' : '',
+    tagline,
+    tagline ? '' : '',
+    description ? '## Detailed Persona And Behavior' : '',
+    description,
+    description ? '' : '',
+    '## Runtime Rule',
+    '- Treat this Markdown as the latest source of truth for the active Agent.',
+    '- If no skill zip exists, this Markdown is the full agent behavior definition.',
+    '- If a skill zip exists, this Markdown refines and overrides conflicting skill instructions.',
+    hasMcp ? '' : '',
+    hasMcp ? '## MCP' : '',
+    currentMcp?.name ? `- Name: ${currentMcp.name}` : '',
+    currentMcp?.endpoint ? `- Endpoint: ${currentMcp.endpoint}` : '',
+    currentMcp?.purpose ? `- Purpose: ${currentMcp.purpose}` : '',
+  ].filter(Boolean).join('\n');
+};
+
+const buildSavedProfilePrompt = (profileMarkdown, hasSkillZip, skillZipName) => [
+  profileMarkdown,
+  hasSkillZip ? `Skill package: ${skillZipName}` : profileMarkdown ? 'Skill package: none. Use PROFILE.md as the agent behavior.' : '',
+  hasSkillZip
+    ? 'Instruction: use both the uploaded skill package and PROFILE.md. If they conflict, PROFILE.md is the latest refinement.'
+    : profileMarkdown
+      ? 'Instruction: no skill package is attached. PROFILE.md is the full agent profile.'
+      : '',
+].filter(Boolean).join('\n\n');
+
+const getActiveConversationMessages = () => {
+  const conversation = conversations.find((item) => item.id === activeConversationId);
+  return (conversation?.messages || [])
+    .filter((item) => item.role === 'user' || item.role === 'assistant')
+    .slice(-16)
+    .map((item) => ({
+      role: item.role,
+      text: String(item.text || '').slice(0, 4000),
+    }));
+};
+
 const askRuntime = async (message) => {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 75000);
   const response = await fetch('/api/module-agent-launch/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, agentId: activeAgentId }),
+    signal: controller.signal,
+    body: JSON.stringify({
+      message,
+      agentId: activeAgentId,
+      conversationId: activeConversationId,
+      history: getActiveConversationMessages(),
+    }),
+  }).catch((error) => {
+    if (error.name === 'AbortError') throw new Error('模型响应超时，请稍后重试或检查当前 Agent 配置。');
+    throw error;
+  }).finally(() => {
+    window.clearTimeout(timeout);
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
@@ -265,12 +365,19 @@ myAgentsButton.addEventListener('click', async () => {
 });
 
 const initialAgentId = new URLSearchParams(window.location.search).get('agentId');
-if (initialAgentId) {
-  loadAgents().then(() => {
+const initializeAgents = async () => {
+  await loadAgents();
+  if (initialAgentId) {
     const agent = agents.find((item) => item.id === initialAgentId);
-    if (agent) selectAgent(agent);
-  });
-}
+    if (agent) {
+      selectAgent(agent);
+      return;
+    }
+    setStatus(chatStatusNode, '没有找到这个 Agent，已保持当前对话。', 'error');
+  } else {
+    resetActiveAgent();
+  }
+};
 
 closeAgentModal.addEventListener('click', () => {
   agentModal.hidden = true;
@@ -288,7 +395,8 @@ newChatButton.addEventListener('click', () => {
   activeConversationId = crypto.randomUUID();
   messages.replaceChildren();
   emptyState.hidden = false;
-  setStatus(chatStatusNode, '已新建对话。');
+  renderHistory();
+  resetActiveAgent('已新建对话，当前测试对象：觅见AI');
 });
 
 document.querySelectorAll('[data-module]').forEach((button) => {
@@ -317,16 +425,12 @@ chatForm.addEventListener('submit', async (event) => {
   chatForm.reset();
   sendButton.disabled = true;
   setStatus(chatStatusNode, '思考中...');
-  const pending = addMessage('system', '思考中', false);
   try {
     const result = await askRuntime(message);
-    pending.remove();
     addMessage('assistant', result.output || '没有返回文本。');
     setStatus(chatStatusNode, '完成。', 'ok');
   } catch (error) {
-    pending.remove();
-    addMessage('system', error.message);
-    setStatus(chatStatusNode, '调用失败。请检查模型配置。', 'error');
+    setStatus(chatStatusNode, `调用失败：${error.message}`, 'error');
   } finally {
     sendButton.disabled = false;
     chatForm.message.focus();
@@ -337,7 +441,8 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const action = event.submitter?.value || 'update';
   actionButtons.forEach((button) => { button.disabled = true; });
-  setStatus(statusNode, action === 'publish' ? '正在发布 Agent...' : action === 'draft' ? '正在保存草稿...' : '正在更新 Agent...');
+  setStatus(statusNode, action === 'publish' ? '正在发布并同步画像...' : action === 'draft' ? '正在保存草稿并同步画像...' : '正在更新并同步画像...');
+  setStatus(chatStatusNode, '正在把右侧画像写入当前 Agent...');
   try {
     const values = Object.fromEntries(new FormData(form).entries());
     const skillZip = values.skillZip;
@@ -364,22 +469,14 @@ form.addEventListener('submit', async (event) => {
     if (action === 'publish' && (!values.owner || !values.description)) {
       throw new Error('发布前请填写上传者和详细简介');
     }
-    const agentName = String(values.name || '').trim() || '未命名';
-    const profileText = String(values.description || '').trim() || '未填写画像';
+    const agentName = String(values.name || '').trim() || '觅见AI';
+    const profileMarkdown = buildLiveProfile();
     const payload = {
       name: agentName,
       owner: values.owner || (isDraft ? '未填写' : ''),
       tagline: values.tagline,
       description,
-      skillPrompt: [
-        `# Uploaded Agent Skill: ${agentName || 'Unnamed Agent'}`,
-        '',
-        profileText,
-        '',
-        hasSkillZip ? `Skill package: ${skillZip.name}` : 'Skill package: none. Use the written profile as the agent behavior.',
-        `Category: ${category}`,
-        'Instruction: use both the uploaded skill package and the written description when a skill exists. If no skill exists, the written description is the full agent profile.',
-      ].filter(Boolean).join('\n'),
+      skillPrompt: buildSavedProfilePrompt(profileMarkdown, hasSkillZip, skillZip.name),
       skillZipName: hasSkillZip ? skillZip.name : '',
       skillZipBase64,
       runtimeType: 'another-me-skill-runtime',
@@ -393,16 +490,13 @@ form.addEventListener('submit', async (event) => {
       mcpConfig: currentMcp,
     };
     const result = activeAgentId ? await updateAgent(activeAgentId, payload) : await publishAgent(payload);
-    activeAgentId = result.id;
-    activeAgentName = result.name;
-    localStorage.setItem('another-me-active-agent-id', activeAgentId);
-    localStorage.setItem('another-me-active-agent-name', activeAgentName);
-    form.reset();
+    lastProfileMarkdown = profileMarkdown;
+    selectAgent(result);
     syncCustomCategory();
     await loadAgents();
     const verb = action === 'publish' ? '已发布' : action === 'draft' ? '已存为草稿' : '已更新';
-    setStatus(statusNode, `${verb} ${result.name}。可以在中间对话框继续测试，发现问题后再更新。`, 'ok');
-    setStatus(chatStatusNode, `当前测试对象：${result.name}`, 'ok');
+    setStatus(statusNode, `${verb} ${result.name}，画像已同步。可以在中间对话框继续测试，发现问题后再更新。`, 'ok');
+    setStatus(chatStatusNode, `画像已同步，当前测试对象：${result.name}`, 'ok');
   } catch (error) {
     setStatus(statusNode, `操作失败：${error.message}`, 'error');
   } finally {
@@ -470,4 +564,4 @@ avatarForm.addEventListener('submit', async (event) => {
 renderHistory();
 renderMessages();
 openModule('skill');
-if (!initialAgentId) loadAgents();
+initializeAgents();

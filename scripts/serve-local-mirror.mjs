@@ -68,20 +68,21 @@ const readDotEnv = async (file) => {
 
 const buildAgentRuntimePrompt = (message, agent) => {
   if (!agent) return message
-  const skill = text(agent.skillPrompt || agent.description, 12000)
-  const description = text(agent.description, 4000)
-  const mcp = agent.mcpConfig || null
+  const skill = text(agent?.skillPrompt || agent?.description, 12000)
+  const description = text(agent?.description, 4000)
+  const mcp = agent?.mcpConfig || null
   return [
     'You are running inside Another Me.',
     'Load the selected skill/persona behavior and expose it through the chat UI.',
-    'Follow both the user-written description and the uploaded skill package below. If they conflict, treat the user-written description as the latest refinement.',
+    'Before every answer, read the saved PROFILE.md or skill text below, consolidate it into your working memory/persona, and answer as that Agent.',
+    'Follow the saved PROFILE.md, the saved user-written description, and the uploaded skill package below. If they conflict, the saved PROFILE.md has the highest priority, then the saved user-written description, then the uploaded skill package.',
     'Do not mention implementation details unless the user asks.',
     '',
     '[AGENT_PROFILE]',
-    `Name: ${agent.name || 'Uploaded Agent'}`,
-    `Owner: ${agent.owner || 'Unknown'}`,
-    `Category: ${agent.category || 'General'}`,
-    `Tagline: ${agent.tagline || ''}`,
+    `Name: ${agent?.name || '觅见AI'}`,
+    `Owner: ${agent?.owner || 'Unknown'}`,
+    `Category: ${agent?.category || 'General'}`,
+    `Tagline: ${agent?.tagline || ''}`,
     '',
     '[USER_DESCRIPTION]',
     description || 'No written description was provided.',
@@ -103,13 +104,29 @@ const buildAgentRuntimePrompt = (message, agent) => {
   ].join('\n')
 }
 
-const runAnotherMeChat = async (message, agent = null) => {
+const normalizeChatHistory = (history) => {
+  if (!Array.isArray(history)) return []
+  return history
+    .filter((item) => item && (item.role === 'user' || item.role === 'assistant'))
+    .slice(-16)
+    .map((item) => ({
+      role: item.role,
+      content: text(item.text || item.content, 4000),
+    }))
+    .filter((item) => item.content)
+}
+
+const runAnotherMeChat = async (message, agent = null, history = []) => {
   const envFromFile = await readDotEnv(globalEnvFile)
   const model = envFromFile.OPENAI_MODEL || process.env.OPENAI_MODEL || 'gpt-5'
   const apiKey = envFromFile.OPENAI_API_KEY || envFromFile.LLM_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY
   const baseUrl = (envFromFile.OPENAI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '')
   if (!apiKey) throw new Error('缺少 OPENAI_API_KEY 或 LLM_API_KEY。')
   const runtimePrompt = buildAgentRuntimePrompt(message, agent)
+  const scopedHistory = normalizeChatHistory(history)
+  const priorMessages = scopedHistory.at(-1)?.role === 'user' && scopedHistory.at(-1)?.content === message
+    ? scopedHistory.slice(0, -1)
+    : scopedHistory
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 60000)
   const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -121,7 +138,8 @@ const runAnotherMeChat = async (message, agent = null) => {
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: 'You are Another Me. Reply concisely and do not mention implementation details.' },
+        { role: 'system', content: 'You are 觅见AI. Use only the current conversation history provided in this request. Do not infer or remember content from other chat windows. Reply concisely and do not mention implementation details.' },
+        ...priorMessages,
         { role: 'user', content: runtimePrompt },
       ],
     }),
@@ -378,6 +396,7 @@ const mockApi = async (req, res, requestUrl) => {
 
   const pathName = requestUrl.pathname
   if (pathName === '/api/module-agent-launch/chat' && req.method === 'POST') {
+    const startedAt = Date.now()
     try {
       const body = await readJsonBody(req)
       const message = text(body.message, 8000)
@@ -386,11 +405,14 @@ const mockApi = async (req, res, requestUrl) => {
       const agents = agentId ? await loadJsonFile(moduleAgentsFile, []) : []
       const agent = agentId ? agents.find((item) => item.id === agentId) : null
       if (agentId && !agent) return json(res, { error: 'agent not found' }, 404)
-      const result = await runAnotherMeChat(message, agent)
+      console.log(`[agent-launch/chat] start agent=${agent?.name || '觅见AI'} agentId=${agentId || 'default'} history=${Array.isArray(body.history) ? body.history.length : 0}`)
+      const result = await runAnotherMeChat(message, agent, body.history)
+      console.log(`[agent-launch/chat] ok agent=${agent?.name || '觅见AI'} elapsed=${Date.now() - startedAt}ms`)
       return json(res, {
         output: result.output,
       })
     } catch (error) {
+      console.error(`[agent-launch/chat] error elapsed=${Date.now() - startedAt}ms`, error)
       return json(res, {
         error: sanitizeAssistantOutput(error instanceof Error ? error.message : '聊天助手调用失败'),
       }, 500)
@@ -407,9 +429,9 @@ const mockApi = async (req, res, requestUrl) => {
       if (agent.status === 'published' && (!agent.owner || !agent.description)) {
         return json(res, { error: 'owner and description are required before publishing' }, 400)
       }
-      if (!agent.name) agent.name = '未命名'
+      if (!agent.name) agent.name = '觅见AI'
       if (!agent.owner) agent.owner = '未填写'
-      if (!agent.description) agent.description = '未填写画像'
+      if (!agent.description) agent.description = ''
       if (body.skillZipBase64) {
         const extracted = await saveAndExtractSkillZip(agent.id, body)
         agent.skillZipName = text(body.skillZipName, 240)
