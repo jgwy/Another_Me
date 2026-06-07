@@ -43,3 +43,6 @@ htmlcov/
 
 # ---- Docker ----
 *.pid
+
+# ---- Docs (internal, not for public) ----
+docs/
