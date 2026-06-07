@@ -64,6 +64,7 @@
   "cta": {
     "dispatch": "Dispatch a twin",
     "buildTwin": "Build a twin",
+    "createScenario": "Create a scene",
     "letAiGo": "Let the AI go find"
   }
 }

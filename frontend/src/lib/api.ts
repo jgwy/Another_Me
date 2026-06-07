@@ -55,10 +55,31 @@ export interface SkillParam {
   description?: string | null;
 }
 
+/** Parsed SKILL.md frontmatter (when a skill was imported from a .zip pack). */
+export interface SkillManifest {
+  name?: string;
+  description?: string;
+  version?: string;
+  triggers?: string[];
+  [key: string]: unknown;
+}
+
+/** One packaged file recorded in an imported skill's `resources` manifest. */
+export interface SkillResource {
+  path: string;
+  kind?: string;
+  ref?: string;
+  size?: number;
+  [key: string]: unknown;
+}
+
 /**
  * Skill v2 — a standalone, structured capability pack. `agent_id == null` ⇒ a
  * library skill. `prompt_body` is canonical; `content` is the mirrored v1 alias
  * (prefer `prompt_body`). v2 fields are optional and default empty for legacy.
+ *
+ * When imported from a `.zip` pack the skill also carries the raw `skill_md`
+ * body, the parsed `manifest` (frontmatter), and a `resources` file manifest.
  */
 export interface Skill {
   id: string;
@@ -68,6 +89,12 @@ export interface Skill {
   description?: string;
   prompt_body?: string;
   content: string;
+  /** Raw SKILL.md body when imported from a .zip pack; "" / absent otherwise. */
+  skill_md?: string;
+  /** Parsed SKILL.md frontmatter: {name, description, version, triggers?}. */
+  manifest?: SkillManifest | null;
+  /** Packaged resource manifest: [{path, kind, ref, size?}, ...]. */
+  resources?: SkillResource[] | null;
   params?: SkillParam[];
   tags?: string[];
   executable?: SkillExecutable;
@@ -528,8 +555,12 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
   const { body, auth = true, token, headers, ...rest } = opts;
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
+  // Multipart uploads pass a FormData body — let the browser set the
+  // `Content-Type` (with the multipart boundary) and send it through untouched.
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
   const finalHeaders = new Headers(headers);
-  if (!finalHeaders.has("Content-Type")) {
+  if (!isFormData && !finalHeaders.has("Content-Type")) {
     finalHeaders.set("Content-Type", "application/json");
   }
   const authToken = token ?? (auth ? getStoredToken() : null);
@@ -542,7 +573,8 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
     res = await fetch(url, {
       ...rest,
       headers: finalHeaders,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body),
     });
   } catch (err) {
     throw new ApiError(0, err instanceof Error ? err.message : "Network request failed");
@@ -724,12 +756,43 @@ export function patchAgent(id: string, body: AgentPatch): Promise<Agent> {
 /* Scenarios — contract §3.4                                                   */
 /* -------------------------------------------------------------------------- */
 
-export function listScenarios(): Promise<Scenario[]> {
-  return apiFetch<Scenario[]>("/api/scenarios", { method: "GET", auth: false });
+export interface ScenarioListParams {
+  /** Filter by `meta.category` bucket. */
+  category?: string;
+  /** `me` or an owner uuid. */
+  owner?: string;
+  is_public?: boolean;
+}
+
+export function listScenarios(params?: ScenarioListParams): Promise<Scenario[]> {
+  return apiFetch<Scenario[]>(`/api/scenarios${qs(params)}`, { method: "GET", auth: false });
 }
 
 export function getScenario(idOrKey: string): Promise<Scenario> {
   return apiFetch<Scenario>(`/api/scenarios/${idOrKey}`, { method: "GET", auth: false });
+}
+
+/** User-created scenario (`POST /api/scenarios`). The server slugifies a unique
+ *  `key`, stamps `owner_id`, and merges `category` into `meta`. */
+export interface ScenarioCreate {
+  name: string;
+  description?: string;
+  /** business | empathy | generic (defaults to generic server-side). */
+  kind?: ScenarioKind;
+  topics?: string[];
+  scene_prompt?: string;
+  ending_prompt?: string;
+  /** Taxonomy bucket (business|social|health|art|…); stored under `meta.category`. */
+  category?: string | null;
+  /** Optional explicit key; server slugifies `name` when omitted. */
+  key?: string | null;
+  is_public?: boolean;
+  /** Optional map/visual overrides merged into `meta` (coords, sprite, …). */
+  meta?: Record<string, unknown> | null;
+}
+
+export function createScenario(body: ScenarioCreate): Promise<Scenario> {
+  return apiFetch<Scenario>("/api/scenarios", { method: "POST", body });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -963,12 +1026,146 @@ export function createSkill(body: SkillCreate): Promise<Skill> {
   return apiFetch<Skill>("/api/skills", { method: "POST", body });
 }
 
+export interface ImportSkillOptions {
+  is_public?: boolean;
+  /** Attach the imported skill to this owned agent (null ⇒ a library skill). */
+  agent_id?: string | null;
+}
+
+/**
+ * Import a skill from a `.zip` pack (multipart/form-data). The archive must
+ * contain a `SKILL.md` at its root; the server parses its frontmatter into
+ * `manifest`, the body into `skill_md`/`prompt_body`, and records packaged files
+ * in `resources`. Returns the created Skill (201); **422** when the archive is
+ * invalid or has no `SKILL.md`.
+ */
+export function importSkill(file: File, opts: ImportSkillOptions = {}): Promise<Skill> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("is_public", String(opts.is_public ?? false));
+  if (opts.agent_id) form.append("agent_id", opts.agent_id);
+  return apiFetch<Skill>("/api/skills/import", { method: "POST", body: form });
+}
+
 export function patchSkill(id: string, body: SkillPatch): Promise<Skill> {
   return apiFetch<Skill>(`/api/skills/${id}`, { method: "PATCH", body });
 }
 
 export function deleteSkill(id: string): Promise<void> {
   return apiFetch<void>(`/api/skills/${id}`, { method: "DELETE" });
+}
+
+/* -------------------------------------------------------------------------- */
+/* MCP servers — sandbox-connected tool servers (contract §3.11)               */
+/* -------------------------------------------------------------------------- */
+
+export type McpTransport = "stdio" | "sse" | "http";
+export type McpStatus = "unknown" | "online" | "offline" | "error";
+
+/** A tool discovered on an MCP server (mirrors the MCP tool descriptor shape). */
+export interface McpTool {
+  name: string;
+  description?: string | null;
+  inputSchema?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+/**
+ * A registered MCP server. Secrets (`token` and any secret-bearing `config`
+ * keys) are **write-only** — accepted on create/patch but never returned here.
+ * `tools` is populated after a successful `connect` probe (run in the sandbox).
+ */
+export interface McpServer {
+  id: string;
+  owner_id: string;
+  /** null ⇒ a library/standalone server; otherwise attached to this agent. */
+  agent_id: string | null;
+  name: string;
+  description: string;
+  category: string;
+  transport: McpTransport;
+  command: string | null;
+  url: string | null;
+  config?: Record<string, unknown> | null;
+  status: McpStatus;
+  tools?: McpTool[] | null;
+  is_public: boolean;
+  last_checked_at?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface McpServerCreate {
+  name: string;
+  description?: string;
+  category?: string;
+  transport?: McpTransport;
+  /** Provide `command` for stdio transport, or `url` for sse/http. */
+  command?: string | null;
+  url?: string | null;
+  /** Write-only auth bearer; never echoed back. */
+  token?: string | null;
+  config?: Record<string, unknown> | null;
+  /** Optionally attach to an owned agent (null ⇒ a library server). */
+  agent_id?: string | null;
+  is_public?: boolean;
+}
+
+export interface McpServerPatch {
+  name?: string;
+  description?: string;
+  category?: string;
+  transport?: McpTransport;
+  command?: string | null;
+  url?: string | null;
+  token?: string | null;
+  config?: Record<string, unknown> | null;
+  agent_id?: string | null;
+  is_public?: boolean;
+}
+
+/** Result of `POST /api/mcps/{id}/connect` (probes the server in the sandbox). */
+export interface McpConnectResult {
+  id: string;
+  status: McpStatus;
+  tools: McpTool[];
+  error?: string | null;
+}
+
+export interface McpListParams {
+  /** `me` or a user uuid. */
+  owner?: string;
+  agent_id?: string;
+  category?: string;
+  q?: string;
+  is_public?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export function listMcps(params?: McpListParams): Promise<Page<McpServer>> {
+  return apiFetch<Page<McpServer>>(`/api/mcps${qs(params)}`, { method: "GET" });
+}
+
+export function getMcp(id: string): Promise<McpServer> {
+  return apiFetch<McpServer>(`/api/mcps/${id}`, { method: "GET" });
+}
+
+export function createMcp(body: McpServerCreate): Promise<McpServer> {
+  return apiFetch<McpServer>("/api/mcps", { method: "POST", body });
+}
+
+export function patchMcp(id: string, body: McpServerPatch): Promise<McpServer> {
+  return apiFetch<McpServer>(`/api/mcps/${id}`, { method: "PATCH", body });
+}
+
+export function deleteMcp(id: string): Promise<void> {
+  return apiFetch<void>(`/api/mcps/${id}`, { method: "DELETE" });
+}
+
+/** Probe/connect the server inside the sandbox and discover its tools. */
+export function connectMcp(id: string): Promise<McpConnectResult> {
+  return apiFetch<McpConnectResult>(`/api/mcps/${id}/connect`, { method: "POST" });
 }
 
 /* -------------------------------------------------------------------------- */

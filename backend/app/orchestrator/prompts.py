@@ -9,8 +9,8 @@ behaves like a real person and never recites its own setup:
     3. <PERSONA_EMBODIMENT>     — 2nd-person behavioral rules + positive/negative examples
     4. 你是谁 / 你怎么说话 / 你在乎什么 / 你关心什么 / 你的过往  (behavioral persona)
     5. Context (scenario / opponent / topics / task)
-    6. Skills
-    7. Run-code instructions (business scenarios)
+    6. Skills (executable script/MCP skills surface their trigger + sandbox hint)
+    7. Run-code instructions (scenario allows OR the agent carries a script skill)
     8. Ending phase (when winding down)
     9. Output format rules
 
@@ -40,6 +40,36 @@ _RUN_CODE_INSTRUCTIONS = (
     "直接在回答里输出一个 ```python 代码块（仅标准库，无网络、无密钥），"
     "系统会真实运行它并把 stdout 作为证据回注到对话中。不要编造运行结果。"
 )
+
+
+# --------------------------------------------------------------------------- #
+# run_code gating (refactor-2 §3: skills can trigger the sandbox)
+# --------------------------------------------------------------------------- #
+def scenario_allows_code(scenario: Scenario) -> bool:
+    """Scenarios that natively grant the code sandbox ("work"/business stages)."""
+    return scenario.kind == "business"
+
+
+def _executable_kind(skill: Any) -> str | None:
+    """The ``executable.kind`` of a skill (``script`` / ``mcp`` / …) or ``None``."""
+    ex = getattr(skill, "executable", None)
+    if isinstance(ex, dict):
+        kind = ex.get("kind")
+        if isinstance(kind, str) and kind:
+            return kind
+    return None
+
+
+def agent_has_executable_skill(agent: Agent, kind: str) -> bool:
+    """Whether ``agent`` carries a skill whose ``executable.kind == kind``."""
+    return any(_executable_kind(s) == kind for s in (agent.skills or []))
+
+
+def agent_can_run_code(agent: Agent, scenario: Scenario) -> bool:
+    """run_code gate (refactor-2 §3): the scenario allows the sandbox, **or** the
+    acting agent carries an executable *script* skill (``executable.kind == 'script'``)
+    — so a code-capable twin can compute/verify even in a non-business scene."""
+    return scenario_allows_code(scenario) or agent_has_executable_skill(agent, "script")
 
 
 # --------------------------------------------------------------------------- #
@@ -230,10 +260,36 @@ def _memory_block(cfg: PromptConfig) -> str:
 # --------------------------------------------------------------------------- #
 # Runtime context blocks
 # --------------------------------------------------------------------------- #
+def _skill_triggers(skill: Any) -> list[str]:
+    """SKILL.md frontmatter ``triggers`` (when this skill should fire), if any."""
+    manifest = getattr(skill, "manifest", None)
+    if not isinstance(manifest, dict):
+        return []
+    return [str(t).strip() for t in (manifest.get("triggers") or []) if str(t).strip()]
+
+
 def _skills_block(agent: Agent) -> str:
     if not agent.skills:
         return ""
-    lines = [f"- {s.name}：{s.content}" if s.content else f"- {s.name}" for s in agent.skills]
+    lines: list[str] = []
+    for s in agent.skills:
+        head = f"- {s.name}：{s.content}" if s.content else f"- {s.name}"
+        kind = _executable_kind(s)
+        # Executable skills naturally "trigger" the sandbox (refactor-2 §3): a
+        # script skill can run code; an MCP skill can call its connected tools.
+        if kind == "script":
+            extra = (
+                "需要计算、验证数据或拿出可复现结果时，直接在回答里写 ```python 代码块，"
+                "系统会真实运行并把输出作为证据回注"
+            )
+        elif kind == "mcp":
+            extra = "可在需要时调用它连接的 MCP 工具，工具结果会作为证据回注到对话里"
+        else:
+            extra = ""
+        triggers = _skill_triggers(s) if extra else []
+        if triggers:
+            extra += "；触发时机：" + "、".join(triggers[:3])
+        lines.append(head + (f"（{extra}）" if extra else ""))
     return "【你的能力】\n" + "\n".join(lines)
 
 

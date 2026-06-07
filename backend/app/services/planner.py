@@ -1,11 +1,14 @@
-"""Autonomous trip planner (§6).
+"""Autonomous trip planner (§6, refactor-2 §4: *scenario-first*).
 
-Given a dispatched twin's profile + a Task prompt, the planner:
-
-1. picks an ordered sequence of **scenes** (2–4) — the LLM chooses from the
-   available scenarios (with a robust deterministic fallback), and
-2. for each scene, runs **explainable matching** (``services.matching``) to pick
-   an opponent, emitting ``reasons`` / ``risks``.
+Given a dispatched twin's profile + a Task prompt, the planner **only produces an
+ordered sequence of scenes** (2–4) — the LLM chooses from the available scenarios
+(with a robust deterministic fallback) based purely on the twin's own profile /
+task. It deliberately does **not** pick opponents at plan time: scanning the whole
+public user base before departure does not scale, so each ``PlannedStop`` leaves
+``opponent`` unset and the **opponent is matched on arrival** by the trip engine
+from who is standing in that scene's plaza right now (presence ∩ eligible, with an
+eligible-all fallback) — see :mod:`app.orchestrator.trip_engine` and
+:func:`app.services.matching.match_opponent_explained`.
 
 It returns a :class:`PlannedTrip` (a summary + ordered stops). Persisting it as
 ``Trip.plan`` + ``TripEncounter`` rows is the trip engine's job. The planner runs
@@ -24,7 +27,6 @@ from app import llm
 from app.core.config import get_settings
 from app.models import Agent, Scenario
 from app.services.jsonparse import as_str_list, extract_json
-from app.services.matching import match_opponent_explained
 
 logger = logging.getLogger("app.services.planner")
 
@@ -44,7 +46,10 @@ _PLAN_SYSTEM = (
 @dataclass
 class PlannedStop:
     scenario: Scenario
-    opponent: Agent | None
+    # Unset at plan time (refactor-2 §4): the opponent is matched on arrival from
+    # the scene's live plaza presence. ``reasons`` / ``risks`` are likewise filled
+    # in by the trip engine once an opponent is chosen there.
+    opponent: Agent | None = None
     reasons: list[str] = field(default_factory=list)
     risks: list[str] = field(default_factory=list)
 
@@ -170,23 +175,12 @@ async def plan_trip(
     hints = [h for h in (scenario_hints or []) if isinstance(h, str)]
     keys, llm_summary = await _choose_scene_keys(agent, task_prompt, by_key, preferred, n, hints)
 
-    used: set = set()
-    stops: list[PlannedStop] = []
-    for key in keys:
-        scenario = by_key.get(key)
-        if scenario is None:
-            continue
-        opponent, reasons, risks = await match_opponent_explained(
-            session, scenario, agent, exclude_ids=used
-        )
-        if opponent is not None:
-            used.add(opponent.id)
-        stops.append(PlannedStop(scenario=scenario, opponent=opponent, reasons=reasons, risks=risks))
-
-    # Prefer stops that actually found an opponent; keep at least one stop.
-    with_opp = [s for s in stops if s.opponent is not None]
-    if with_opp:
-        stops = with_opp
+    # Scene sequence only — opponents are matched on arrival (refactor-2 §4).
+    stops: list[PlannedStop] = [
+        PlannedStop(scenario=scenario)
+        for key in keys
+        if (scenario := by_key.get(key)) is not None
+    ]
 
     summary = llm_summary or _default_summary(agent, stops, task_prompt)
     return PlannedTrip(summary=summary, stops=stops)

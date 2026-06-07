@@ -26,7 +26,7 @@ from app.models import (
     Scenario,
 )
 from app.orchestrator.evolution import generate_evolution
-from app.orchestrator.prompts import build_turn_messages, turn_meta
+from app.orchestrator.prompts import agent_can_run_code, build_turn_messages, turn_meta
 from app.orchestrator.protocol import compute_rounds, plan_turns
 from app.orchestrator.pubsub import bus
 from app.orchestrator.reports import generate_report
@@ -253,7 +253,6 @@ async def _run(
             dispatch.status = "running"
         await session.commit()
 
-        can_run_code = scenario.kind == "business"
         history: list[Message] = []
         seq = 0
 
@@ -296,6 +295,9 @@ async def _run(
         for step in plan_turns(n):
             acting = agents_by_seat[step.seat]
             opponent_name = names[2 if step.seat == 1 else 1]
+            # run_code is gated per **acting** agent (refactor-2 §3): the scenario
+            # allows it, or this agent carries an executable script skill.
+            can_run_code = agent_can_run_code(acting, scenario)
             has_evidence = any(m.sender == "sandbox" for m in history)
             encourage_code = (
                 can_run_code and step.seat == 1 and step.turn_index == 3 and not has_evidence

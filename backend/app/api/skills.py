@@ -9,15 +9,19 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import String, cast, func, or_, select
 
 from app.api.deps import CurrentUser, OptionalUser, SessionDep
 from app.models import Agent, Skill
 from app.schemas import Page, SkillCreate, SkillPatch
 from app.schemas import Skill as SkillSchema
+from app.services.skillpack import SkillPackError, parse_skill_pack
 
 router = APIRouter(prefix="/skills", tags=["skills"])
+
+# Reject obviously-too-large uploads before buffering the whole archive.
+_MAX_UPLOAD_BYTES = 32 * 1024 * 1024
 
 
 @router.post("", response_model=SkillSchema, status_code=status.HTTP_201_CREATED)
@@ -45,6 +49,74 @@ async def create_skill(body: SkillCreate, current_user: CurrentUser, session: Se
         executable=body.executable.model_dump() if body.executable is not None else None,
         is_public=body.is_public,
         source=body.source or "upload",
+    )
+    session.add(skill)
+    await session.commit()
+    await session.refresh(skill)
+    return skill
+
+
+@router.post("/import", response_model=SkillSchema, status_code=status.HTTP_201_CREATED)
+async def import_skill(
+    current_user: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(..., description=".zip pack that contains a SKILL.md at its root"),
+    is_public: bool = Form(False),
+    agent_id: uuid.UUID | None = Form(None),
+) -> Skill:
+    """Import a skill from a ``.zip`` pack (multipart/form-data).
+
+    Unzip → require ``SKILL.md`` → parse frontmatter into ``manifest`` + body into
+    ``skill_md`` / ``prompt_body`` → record packaged files in ``resources`` →
+    persist as a library Skill (``source="upload"``). When ``agent_id`` is given the
+    skill is attached to that (owned) agent. Returns the created **Skill** (201);
+    **422** if the archive is invalid or has no ``SKILL.md``.
+    """
+    # If attaching to an agent, enforce ownership (mirrors create_skill).
+    if agent_id is not None:
+        agent = await session.get(Agent, agent_id)
+        if agent is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="agent not found")
+        if agent.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="not the owner of agent_id"
+            )
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="empty upload"
+        )
+    if len(data) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="uploaded .zip is too large"
+        )
+
+    fallback = (file.filename or "Imported Skill").rsplit("/", 1)[-1]
+    if fallback.lower().endswith(".zip"):
+        fallback = fallback[:-4]
+
+    try:
+        pack = parse_skill_pack(data, fallback_name=fallback or "Imported Skill")
+    except SkillPackError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    skill = Skill(
+        agent_id=agent_id,
+        owner_id=current_user.id,
+        name=pack.name,
+        description=pack.description,
+        # prompt_body is canonical; content mirrors it for v1 back-compat.
+        prompt_body=pack.prompt_body,
+        content=pack.prompt_body,
+        skill_md=pack.skill_md,
+        manifest=pack.manifest or None,
+        resources=pack.resources or None,
+        tags=pack.tags,
+        is_public=is_public,
+        source="upload",
     )
     session.add(skill)
     await session.commit()

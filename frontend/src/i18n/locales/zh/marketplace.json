@@ -2,8 +2,13 @@
   "page": {
     "title": "市集",
     "eyebrow": "岛上市集",
-    "description": "浏览、复刻并上架 AI 分身与技能。积分经济为模拟——不涉及真实支付。",
+    "description": "在 Agent 市场与技能市场之间切换：浏览、复刻并上架 AI 分身与技能包。积分经济为模拟——不涉及真实支付。",
     "list": "上架内容"
+  },
+  "tabs": {
+    "all": "全部",
+    "agents": "Agent 市场",
+    "skills": "技能市场"
   },
   "pts": "{{value}} 积分",
   "free": "免费",
@@ -45,6 +50,7 @@
   "card": {
     "agentSubtitle": "分身",
     "skillSubtitle": "技能模块",
+    "skillPack": "含 SKILL.md",
     "noDescription": "暂无描述。",
     "fork": "复刻",
     "versionBadge": "v{{version}}",

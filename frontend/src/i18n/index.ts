@@ -25,6 +25,7 @@ import zhSandbox from "./locales/zh/sandbox.json";
 import zhInbox from "./locales/zh/inbox.json";
 import zhRelationships from "./locales/zh/relationships.json";
 import zhTrips from "./locales/zh/trips.json";
+import zhScenarios from "./locales/zh/scenarios.json";
 
 import enCommon from "./locales/en/common.json";
 import enNav from "./locales/en/nav.json";
@@ -38,6 +39,7 @@ import enSandbox from "./locales/en/sandbox.json";
 import enInbox from "./locales/en/inbox.json";
 import enRelationships from "./locales/en/relationships.json";
 import enTrips from "./locales/en/trips.json";
+import enScenarios from "./locales/en/scenarios.json";
 
 export const SUPPORTED_LANGUAGES = ["zh", "en"] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -58,6 +60,7 @@ export const NAMESPACES = [
   "inbox",
   "relationships",
   "trips",
+  "scenarios",
 ] as const;
 
 export const resources = {
@@ -74,6 +77,7 @@ export const resources = {
     inbox: zhInbox,
     relationships: zhRelationships,
     trips: zhTrips,
+    scenarios: zhScenarios,
   },
   en: {
     common: enCommon,
@@ -88,6 +92,7 @@ export const resources = {
     inbox: enInbox,
     relationships: enRelationships,
     trips: enTrips,
+    scenarios: enScenarios,
   },
 } as const;
 

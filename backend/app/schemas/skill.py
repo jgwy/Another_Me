@@ -53,6 +53,12 @@ class Skill(BaseModel):
     prompt_body: str = ""
     # Deprecated alias of ``prompt_body`` (kept during migration).
     content: str = ""
+    # Raw SKILL.md body (when imported from a .zip pack); "" otherwise.
+    skill_md: str = ""
+    # Parsed SKILL.md frontmatter: {name, description, version, triggers: [...]}.
+    manifest: dict[str, Any] | None = None
+    # Packaged resource manifest: [{path, kind, ref, size?}, ...].
+    resources: list[dict[str, Any]] | None = None
     params: list[SkillParam] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     executable: SkillExecutable | None = None

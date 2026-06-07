@@ -12,6 +12,7 @@ from app.api import (
     evolutions,
     inbox,
     marketplace,
+    mcps,
     relationships,
     reports,
     sandbox,
@@ -31,6 +32,7 @@ api_router.include_router(conversations.router)
 api_router.include_router(reports.router)
 api_router.include_router(evolutions.router)
 api_router.include_router(marketplace.router)
+api_router.include_router(mcps.router)
 api_router.include_router(relationships.router)
 api_router.include_router(inbox.router)
 api_router.include_router(sandbox.router)

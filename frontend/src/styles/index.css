@@ -1,47 +1,51 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/* Design tokens — 觅见.AI dark theme                                          */
-/* Deep slate/indigo canvas, layered surfaces, a violet brand + emerald accent */
-/* Unified system: surfaces, scenario accents, journey palette, world canvas,  */
-/* motion easings. Consumed across the app + the living-world map.             */
+/* Design tokens — 觅见.AI 自然治愈 light theme                                */
+/* Warm paper-cream canvas, layered paper surfaces, a moss-green brand +       */
+/* terracotta accent. Unified system: surfaces, scenario accents, journey      */
+/* palette, world canvas, motion easings. Consumed across the app + map.       */
 /* -------------------------------------------------------------------------- */
 @theme {
-  /* Type */
+  /* Type — rounded organic display (Fraunces) + warm humanist body (Nunito Sans) */
   --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    "Nunito Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+    Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-display:
+    "Fraunces", "Nunito Sans", ui-serif, Georgia, "Songti SC",
+    "Noto Serif CJK SC", serif;
   --font-mono:
     "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Backgrounds (deepest → most elevated) */
-  --color-canvas: #07070d;
-  --color-surface: #0f0f1a;
-  --color-surface-2: #161627;
-  --color-elevated: #1d1d31;
+  /* Backgrounds (page base → most elevated paper) */
+  --color-canvas: #f4eddf;
+  --color-surface: #fcf8f1;
+  --color-surface-2: #ece3d1;
+  --color-elevated: #fffdf9;
 
   /* Lines */
-  --color-border: #2a2a45;
-  --color-border-soft: #1e1e36;
+  --color-border: #d9cdb6;
+  --color-border-soft: #e7dcc7;
 
   /* Text */
-  --color-ink: #ecedf6;
-  --color-muted: #a2a3c2;
-  --color-faint: #6c6d8d;
+  --color-ink: #2f2a22;
+  --color-muted: #675c4d;
+  --color-faint: #9a8e78;
 
-  /* Brand — violet */
-  --color-brand: #7c5cff;
-  --color-brand-strong: #6a45ff;
-  --color-brand-soft: #191436;
+  /* Brand — moss green (the single hero accent) */
+  --color-brand: #4f6f37;
+  --color-brand-strong: #415c2c;
+  --color-brand-soft: #e7ecda;
 
-  /* Accent — emerald */
-  --color-accent: #2dd4a7;
-  --color-accent-strong: #16b88c;
+  /* Accent — warm terracotta / clay */
+  --color-accent: #b35c30;
+  --color-accent-strong: #964a23;
 
   /* Status */
-  --color-danger: #ff6b81;
-  --color-success: #36d399;
-  --color-warning: #fbbf55;
+  --color-danger: #b83a23;
+  --color-success: #4e7f34;
+  --color-warning: #b3791d;
 
   /* Radius scale */
   --radius-lg: 0.75rem;
@@ -49,38 +53,39 @@
   --radius-2xl: 1.25rem;
   --radius-3xl: 1.75rem;
 
-  /* Shadows */
-  --shadow-soft: 0 18px 50px -24px rgba(0, 0, 0, 0.85);
-  --shadow-card: 0 24px 60px -28px rgba(0, 0, 0, 0.9);
-  --shadow-glow: 0 10px 30px -10px rgba(124, 92, 255, 0.55);
-  --shadow-float: 0 32px 80px -32px rgba(0, 0, 0, 0.95);
-  --shadow-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  /* Shadows — soft, warm-tinted (paper, not ink) */
+  --shadow-soft: 0 14px 40px -24px rgba(63, 50, 32, 0.26);
+  --shadow-card: 0 22px 55px -30px rgba(63, 50, 32, 0.3);
+  --shadow-glow: 0 12px 30px -12px rgba(79, 111, 55, 0.42);
+  --shadow-float: 0 30px 70px -34px rgba(63, 50, 32, 0.34);
+  --shadow-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
 
   /* -------------------------------------------------------------------- */
   /* Scenario accents — shared by the world map + cards so a scene reads   */
-  /* the same color everywhere it appears.                                 */
+  /* the same color everywhere it appears. Natural earthy quartet.         */
   /* -------------------------------------------------------------------- */
-  --color-scn-exchange: #7c5cff;
-  --color-scn-cafe: #2dd4a7;
-  --color-scn-lab: #fbbf55;
-  --color-scn-coding: #38bdf8;
+  --color-scn-exchange: #c2673a;
+  --color-scn-cafe: #7d8a3c;
+  --color-scn-lab: #c79a35;
+  --color-scn-coding: #3f8f86;
 
   /* -------------------------------------------------------------------- */
   /* Travel-frog journey status palette (thinking → returned).             */
+  /* Warm-natural progression, no purple.                                  */
   /* -------------------------------------------------------------------- */
-  --color-journey-thinking: #a78bfa;
-  --color-journey-departing: #818cf8;
-  --color-journey-on-road: #38bdf8;
-  --color-journey-meeting: #fbbf55;
-  --color-journey-talking: #2dd4a7;
-  --color-journey-returned: #36d399;
+  --color-journey-thinking: #9aa873;
+  --color-journey-departing: #c9a25b;
+  --color-journey-on-road: #4f9f93;
+  --color-journey-meeting: #c4783f;
+  --color-journey-talking: #5f8f48;
+  --color-journey-returned: #4e7f34;
 
-  /* World canvas gradient stops (deep night → horizon glow). */
-  --color-world-deep: #060912;
-  --color-world-mid: #0b1326;
-  --color-world-grass: #16352b;
-  --color-world-grass-edge: #2dd4a7;
-  --color-world-path: #1b2238;
+  /* World canvas gradient stops (bright meadow sky → grass → warm path). */
+  --color-world-deep: #eef3e3;
+  --color-world-mid: #e3ecd2;
+  --color-world-grass: #cde0ad;
+  --color-world-grass-edge: #7fae4f;
+  --color-world-path: #e7d8b8;
 
   /* Motion language — easings + durations for a consistent feel. */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -101,7 +106,7 @@
   }
 
   html {
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -109,6 +114,14 @@
   body,
   #root {
     height: 100%;
+  }
+
+  /* Headings wear the rounded organic display face. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
   }
 
   body {
@@ -123,17 +136,17 @@
     background-image:
       radial-gradient(
         48rem 48rem at 8% -8%,
-        color-mix(in oklab, var(--color-brand) 20%, transparent),
+        color-mix(in oklab, var(--color-brand) 14%, transparent),
         transparent 60%
       ),
       radial-gradient(
         42rem 42rem at 100% 0%,
-        color-mix(in oklab, var(--color-accent) 9%, transparent),
+        color-mix(in oklab, var(--color-accent) 10%, transparent),
         transparent 55%
       ),
       radial-gradient(
         60rem 40rem at 50% 120%,
-        color-mix(in oklab, var(--color-brand) 12%, transparent),
+        color-mix(in oklab, var(--color-brand) 10%, transparent),
         transparent 60%
       );
     background-attachment: fixed;
@@ -141,7 +154,7 @@
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-brand) 40%, transparent);
+    background: color-mix(in oklab, var(--color-brand) 28%, transparent);
     color: var(--color-ink);
   }
 
@@ -274,7 +287,7 @@
     inset: 0;
     pointer-events: none;
     border-radius: inherit;
-    box-shadow: inset 0 0 180px 40px rgba(0, 0, 0, 0.55);
+    box-shadow: inset 0 0 160px 36px rgba(63, 50, 32, 0.16);
   }
 }
 

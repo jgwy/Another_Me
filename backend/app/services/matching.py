@@ -5,9 +5,16 @@ Deterministic heuristic scoring:
 * empathy (cafe)      → prefer a *different* background (cross-industry empathy);
 * generic             → any relevant public agent.
 
-The autonomous trip planner uses :func:`match_opponent_explained`, which returns
-the same pick plus human-readable ``reasons`` / ``risks`` (with light Chinese
-tokenization for shared-interest detection) so the journey is explainable.
+The autonomous trip engine (refactor-2 §4: *scenario-first matching*) uses
+:func:`match_opponent_explained` **on arrival** at each scene, passing the
+``candidate_ids`` set of agents standing in that plaza *right now*
+(``presence.list_present_agent_ids``) so scoring is restricted to who is actually
+present — instead of scanning the whole public user base at plan time. When the
+plaza is empty/insufficient the caller re-invokes without ``candidate_ids`` to
+fall back to the scenario's eligible-all set, so there is always someone to meet.
+Either way the function returns the pick plus human-readable ``reasons`` /
+``risks`` (with light Chinese tokenization for shared-interest detection) so the
+journey stays explainable.
 """
 
 from __future__ import annotations
@@ -126,9 +133,18 @@ async def list_candidates(
     *,
     different_owner: bool,
     exclude_ids: set[uuid.UUID] | frozenset[uuid.UUID] = frozenset(),
+    candidate_ids: set[uuid.UUID] | frozenset[uuid.UUID] | None = None,
 ) -> list[Agent]:
-    """Public agents eligible as opponents for ``agent`` (skills eager-loaded)."""
+    """Public agents eligible as opponents for ``agent`` (skills eager-loaded).
+
+    ``candidate_ids`` (refactor-2 §4) restricts the pool to a presence-provided
+    set — the agents standing in the scene's plaza *right now*. ``None`` keeps the
+    full eligible-all set (the empty-plaza fallback); an empty set means "nobody is
+    here" and yields ``[]``.
+    """
     conditions = [Agent.is_public.is_(True), Agent.id != agent.id]
+    if candidate_ids is not None:
+        conditions.append(Agent.id.in_(list(candidate_ids)))
     if exclude_ids:
         conditions.append(Agent.id.notin_(list(exclude_ids)))
     if different_owner:
@@ -197,14 +213,22 @@ async def match_opponent_explained(
     agent: Agent,
     *,
     exclude_ids: set[uuid.UUID] | frozenset[uuid.UUID] = frozenset(),
+    candidate_ids: set[uuid.UUID] | frozenset[uuid.UUID] | None = None,
 ) -> tuple[Agent | None, list[str], list[str]]:
     """Pick the best opponent for ``agent`` in ``scenario`` with explanations.
 
-    ``exclude_ids`` lets the trip planner avoid repeating opponents across stops.
+    ``exclude_ids`` lets the trip engine avoid repeating opponents across stops.
+    ``candidate_ids`` (refactor-2 §4) restricts scoring to the agents present in the
+    scene's plaza right now; pass ``None`` for the eligible-all fallback. The
+    existing different-owner → same-owner relaxation still applies *within* the
+    given set, and a restricted set with no eligible match returns ``(None, [], [])``
+    so the caller can fall back to eligible-all.
     """
     candidates = await list_candidates(
-        session, agent, different_owner=True, exclude_ids=exclude_ids
-    ) or await list_candidates(session, agent, different_owner=False, exclude_ids=exclude_ids)
+        session, agent, different_owner=True, exclude_ids=exclude_ids, candidate_ids=candidate_ids
+    ) or await list_candidates(
+        session, agent, different_owner=False, exclude_ids=exclude_ids, candidate_ids=candidate_ids
+    )
     if not candidates:
         return None, [], []
     candidates.sort(

@@ -216,6 +216,59 @@
     "origin": {
       "library": "我的",
       "marketplace": "市集"
+    },
+    "importZip": "导入 .zip 技能",
+    "addMcp": "添加 MCP",
+    "mcpSectionTitle": "已连接的 MCP 工具",
+    "mcpSectionHint": "MCP 服务器在沙盒内连接，其工具可在邂逅中被技能调起。",
+    "mcpToolsCount": "{{count}} 个工具",
+    "mcpNoTools": "尚未发现工具，重新连接试试。"
+  },
+  "skillImport": {
+    "title": "导入技能包（.zip）",
+    "description": "上传一个含 SKILL.md 的 .zip，我们会解析它的清单（frontmatter）与正文。",
+    "filePlaceholder": "仅支持含 SKILL.md 的 .zip",
+    "choose": "选择 .zip 文件",
+    "isPublic": "公开到技能库",
+    "isPublicHint": "公开后他人可在技能市场发现并复刻。",
+    "submit": "导入并解析",
+    "successTitle": "已导入并选中",
+    "version": "版本",
+    "triggers": "触发器",
+    "resources": "打包文件",
+    "preview": "SKILL.md 预览",
+    "done": "完成",
+    "noFile": "先选择一个 .zip 文件。",
+    "error": "导入失败，请确认压缩包内含有 SKILL.md。"
+  },
+  "mcp": {
+    "title": "添加 MCP 服务器",
+    "description": "注册一个 MCP 工具服务器，连接后即可发现它暴露的工具。",
+    "nameLabel": "名称",
+    "namePlaceholder": "例如：Web 检索",
+    "transportLabel": "传输方式",
+    "urlLabel": "服务器地址（URL）",
+    "urlPlaceholder": "https://… 或 wss://…",
+    "commandLabel": "启动命令",
+    "commandPlaceholder": "例如：npx -y @modelcontextprotocol/server-everything",
+    "tokenLabel": "鉴权 Token（可选）",
+    "tokenPlaceholder": "仅保存在后端，不会回传",
+    "categoryLabel": "分类（可选）",
+    "descriptionLabel": "描述（可选）",
+    "isPublic": "公开到 MCP 库",
+    "submit": "连接并发现工具",
+    "discoveredTitle": "发现的工具",
+    "noTools": "未发现工具。",
+    "status": "状态",
+    "done": "完成",
+    "nameError": "给 MCP 起个名字。",
+    "targetError": "填写服务器地址或启动命令。",
+    "error": "连接失败，请检查配置后重试。",
+    "statusLabel": {
+      "online": "在线",
+      "offline": "离线",
+      "error": "错误",
+      "unknown": "未知"
     }
   }
 }

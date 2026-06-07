@@ -11,10 +11,14 @@ import { create } from "zustand";
 
 import {
   applyEvolution,
+  connectMcp,
   createAgent,
   createDispatch,
   createMarketplaceItem,
+  createMcp,
+  createScenario,
   createSkill,
+  deleteMcp,
   deleteSkill,
   emptyPromptConfig,
   forkAgent,
@@ -31,6 +35,7 @@ import {
   getScenario,
   getSkill,
   getUnreadCount,
+  importSkill,
   likeMarketplaceItem,
   listAgents,
   listConversations,
@@ -39,6 +44,7 @@ import {
   listInbox,
   listMarketplace,
   listMarketplaceVersions,
+  listMcps,
   listRelationships,
   listScenarios,
   listSkills,
@@ -62,6 +68,7 @@ import type {
   DispatchCreate,
   DispatchListParams,
   Evolution,
+  ImportSkillOptions,
   InboxListParams,
   MarketplaceCreate,
   MarketplaceForkResult,
@@ -70,6 +77,10 @@ import type {
   MarketplaceListParams,
   MarketplacePublishBody,
   MarketplaceVersion,
+  McpConnectResult,
+  McpListParams,
+  McpServer,
+  McpServerCreate,
   Message,
   Notification,
   Page,
@@ -81,6 +92,7 @@ import type {
   SandboxRunRequest,
   SandboxRunResult,
   Scenario,
+  ScenarioCreate,
   Skill,
   SkillCreate,
   SkillListParams,
@@ -138,6 +150,8 @@ export const qk = {
   points: ["points"] as const,
   skills: (params?: SkillListParams) => ["skills", params ?? {}] as const,
   skill: (id: string) => ["skill", id] as const,
+  mcps: (params?: McpListParams) => ["mcps", params ?? {}] as const,
+  mcp: (id: string) => ["mcp", id] as const,
   inbox: (params?: InboxListParams) => ["inbox", params ?? {}] as const,
   unreadCount: ["inbox-unread-count"] as const,
   relationships: (params?: RelationshipListParams) => ["relationships", params ?? {}] as const,
@@ -162,6 +176,16 @@ export function useScenario(idOrKey: string | undefined) {
     enabled: !!idOrKey,
     queryFn: () => orMock(getScenario(idOrKey!), () => mockStore.getScenario(idOrKey!)),
     staleTime: 5 * 60_000,
+  });
+}
+
+/** Create a user-owned scenario (`POST /api/scenarios`); falls back to a typed
+ *  mock + demo pill until the call succeeds against a live backend. */
+export function useCreateScenario() {
+  const qc = useQueryClient();
+  return useMutation<Scenario, Error, ScenarioCreate>({
+    mutationFn: (body) => orMock(createScenario(body), () => mockStore.createScenario(body)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["scenarios"] }),
   });
 }
 
@@ -484,6 +508,59 @@ export function useDeleteSkill() {
         mockStore.deleteSkill(id);
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
+  });
+}
+
+/** Import a skill from a `.zip` pack (multipart). On success the new library
+ *  skill lands in the `skills` lists; falls back to a typed mock + demo pill. */
+export function useImportSkill() {
+  const qc = useQueryClient();
+  return useMutation<Skill, Error, { file: File } & ImportSkillOptions>({
+    mutationFn: ({ file, ...opts }) =>
+      orMock(importSkill(file, opts), () => mockStore.importSkill(file, opts)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* MCP servers (sandbox-connected tool servers)                                */
+/* -------------------------------------------------------------------------- */
+
+export function useMcps(params?: McpListParams) {
+  return useQuery<Page<McpServer>>({
+    queryKey: qk.mcps(params),
+    queryFn: () => orMock(listMcps(params), () => mockStore.listMcps(params)),
+  });
+}
+
+export function useCreateMcp() {
+  const qc = useQueryClient();
+  return useMutation<McpServer, Error, McpServerCreate>({
+    mutationFn: (body) => orMock(createMcp(body), () => mockStore.createMcp(body)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mcps"] }),
+  });
+}
+
+/** Probe/connect a server inside the sandbox to discover its tools. */
+export function useConnectMcp() {
+  const qc = useQueryClient();
+  return useMutation<McpConnectResult, Error, string>({
+    mutationFn: (id) => orMock(connectMcp(id), () => mockStore.connectMcp(id)),
+    onSuccess: (_result, id) => {
+      qc.invalidateQueries({ queryKey: ["mcps"] });
+      qc.invalidateQueries({ queryKey: qk.mcp(id) });
+    },
+  });
+}
+
+export function useDeleteMcp() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) =>
+      orMock(deleteMcp(id), () => {
+        mockStore.deleteMcp(id);
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mcps"] }),
   });
 }
 

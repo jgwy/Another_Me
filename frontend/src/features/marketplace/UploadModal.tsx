@@ -14,6 +14,8 @@ import { Textarea } from "../../components/ui/Textarea";
 export interface UploadModalProps {
   open: boolean;
   onClose: () => void;
+  /** Pre-select the listing kind (driven by the active marketplace tab). */
+  initialKind?: MarketplaceKind;
 }
 
 interface FieldErrors {
@@ -37,9 +39,9 @@ const FORK_MODE_OPTIONS = [
  * marketplace. Submits through `useCreateMarketplaceItem`, which falls back to
  * the typed mock store while the backend endpoint is still stubbed.
  */
-export function UploadModal({ open, onClose }: UploadModalProps) {
+export function UploadModal({ open, onClose, initialKind = "agent" }: UploadModalProps) {
   const { t } = useTranslation(["marketplace", "common"]);
-  const [kind, setKind] = useState<MarketplaceKind>("agent");
+  const [kind, setKind] = useState<MarketplaceKind>(initialKind);
   const [agentId, setAgentId] = useState("");
   const [refId, setRefId] = useState("");
   const [title, setTitle] = useState("");
@@ -54,6 +56,11 @@ export function UploadModal({ open, onClose }: UploadModalProps) {
   const agentOptions = (agentsQuery.data?.items ?? []).map((a) => ({ value: a.id, label: a.name }));
   const firstAgentId = agentsQuery.data?.items[0]?.id;
   const noAgents = kind === "agent" && !agentsQuery.isLoading && agentOptions.length === 0;
+
+  // Reflect the active marketplace tab each time the modal opens.
+  useEffect(() => {
+    if (open) setKind(initialKind);
+  }, [open, initialKind]);
 
   // Default the picker to the caller's first agent so listing is one click.
   useEffect(() => {

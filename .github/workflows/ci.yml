@@ -49,8 +49,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Type check
-        run: npx tsc -b --noEmit
-
-      - name: Build
+      - name: Build (includes type check via tsc -b)
         run: npm run build

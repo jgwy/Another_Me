@@ -59,7 +59,12 @@ async def create_trip(body: TripCreate, current_user: CurrentUser, session: Sess
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="not the owner of this agent")
 
     settings = get_settings()
-    duration = body.duration_seconds if body.duration_seconds is not None else settings.trip_duration
+    # Default to the env-configurable TRIP_DURATION_SECONDS (demo fast / prod long).
+    duration = (
+        body.duration_seconds
+        if body.duration_seconds is not None
+        else settings.trip_duration_seconds
+    )
     duration = max(0, int(duration))
 
     trip = TripModel(

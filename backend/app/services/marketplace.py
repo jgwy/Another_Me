@@ -68,7 +68,12 @@ def build_agent_snapshot(agent: Agent) -> dict[str, Any]:
 
 
 def build_skill_snapshot(skill: Skill) -> dict[str, Any]:
-    """Build a credential-free, id-free snapshot of a standalone/library skill."""
+    """Build a credential-free, id-free snapshot of a standalone/library skill.
+
+    Carries the SKILL.md pack fields (``skill_md`` / ``manifest`` / ``resources``)
+    so an imported ``.zip`` skill round-trips through publish/fork with its pack
+    intact.
+    """
     return {
         "kind": "skill",
         "name": skill.name,
@@ -77,6 +82,9 @@ def build_skill_snapshot(skill: Skill) -> dict[str, Any]:
         "params": copy.deepcopy(getattr(skill, "params", None) or []),
         "tags": copy.deepcopy(getattr(skill, "tags", None) or []),
         "executable": strip_credentials(copy.deepcopy(skill.executable or {})),
+        "skill_md": getattr(skill, "skill_md", "") or "",
+        "manifest": copy.deepcopy(getattr(skill, "manifest", None)),
+        "resources": copy.deepcopy(getattr(skill, "resources", None)),
     }
 
 

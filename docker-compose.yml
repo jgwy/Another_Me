@@ -58,6 +58,10 @@ services:
       MAX_ROUNDS: ${MAX_ROUNDS:-8}
       MAX_CONCURRENT_CONVERSATIONS: ${MAX_CONCURRENT_CONVERSATIONS:-4}
       # Trips: real wall-clock duration (seconds) a journey is spread over.
+      # TRIP_DURATION_SECONDS is the canonical knob (demo fast / prod slow); the
+      # backend reads it via settings.trip_duration_seconds. TRIP_DURATION is the
+      # deprecated v1 alias, kept for back-compat.
+      TRIP_DURATION_SECONDS: ${TRIP_DURATION_SECONDS:-45}
       TRIP_DURATION: ${TRIP_DURATION:-60}
       # Sandbox
       SANDBOX_URL: ${SANDBOX_URL:-http://sandbox-runner:8001}

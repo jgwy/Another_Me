@@ -12,6 +12,7 @@ from app.models.conversation import Conversation, ConversationParticipant, Messa
 from app.models.dispatch import Dispatch
 from app.models.evolution import Evolution
 from app.models.marketplace import MarketplaceItem, MarketplaceLike, MarketplaceVersion
+from app.models.mcp import McpServer
 from app.models.notification import Notification
 from app.models.relationship import Relationship
 from app.models.report import Report
@@ -37,6 +38,7 @@ __all__ = [
     "MarketplaceItem",
     "MarketplaceVersion",
     "MarketplaceLike",
+    "McpServer",
     "Trip",
     "TripEncounter",
     "Notification",

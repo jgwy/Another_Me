@@ -64,6 +64,7 @@
   "cta": {
     "dispatch": "派出分身",
     "buildTwin": "捏个分身",
+    "createScenario": "新建场景",
     "letAiGo": "让 AI 自己去找"
   }
 }

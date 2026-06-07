@@ -44,6 +44,7 @@ from app.models import (
     User,
 )
 from app.orchestrator.postcards import build_postcard, build_trip_summary
+from app.services import presence
 from app.services.marketplace import build_snapshot
 from app.services.notifications import create_notification
 from app.services.relationships import upsert_relationship
@@ -928,6 +929,18 @@ async def build_demo_trip(
 
 
 # --------------------------------------------------------------------------- #
+# Plaza presence — register seeded NPC 小人 into the in-process registry.
+# --------------------------------------------------------------------------- #
+async def seed_plaza_presence(session) -> None:
+    """Materialize the ``PLAZA_PRESENCE`` plan into the presence registry so
+    plazas look lively. Idempotent (keyed by agent id). Note: the registry is
+    per-process in-memory, so the long-running API server lazily re-runs this on
+    first plaza access — this call primarily validates the plan at seed time."""
+    placed = await presence.bootstrap_from_db(session, force=True)
+    logger.info("seed: plaza presence plan registered (%d NPC placements)", placed)
+
+
+# --------------------------------------------------------------------------- #
 # Entry point (called by app.seeds.run within its session/transaction)
 # --------------------------------------------------------------------------- #
 async def seed_demo(session, npc_owner: User) -> None:
@@ -942,3 +955,4 @@ async def seed_demo(session, npc_owner: User) -> None:
     await build_demo_trip(
         session, demo_user=demo_user, twin=twin, scenarios=scenarios, agents=npc_agents
     )
+    await seed_plaza_presence(session)

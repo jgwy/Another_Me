@@ -49,6 +49,9 @@ export function MarketplaceCard({
   const locked = item.fork_mode === "locked";
   const forks = item.forks ?? item.downloads;
   const views = item.views ?? 0;
+  // Skill listings carry their SKILL.md pack in the published snapshot.
+  const hasSkillPack =
+    item.kind === "skill" && Boolean((item.snapshot as Record<string, unknown> | undefined)?.skill_md);
 
   // Optimistic like: reflect the tap instantly, then reconcile when the
   // canonical item refreshes (the mutation invalidates the listing query).
@@ -100,6 +103,7 @@ export function MarketplaceCard({
                   {t("card.versionBadge", { version })}
                 </Badge>
               )}
+              {hasSkillPack && <Badge tone="success">{t("card.skillPack")}</Badge>}
             </div>
           </div>
 

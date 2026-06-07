@@ -16,7 +16,7 @@ import { MessageBubble } from "./MessageBubble";
 import { SandboxBubble } from "./SandboxBubble";
 import { useSpectate } from "./useSpectate";
 
-const SEAT_COLOR: Record<number, string> = { 1: "#7c5cff", 2: "#2dd4a7" };
+const SEAT_COLOR: Record<number, string> = { 1: "#4f6f37", 2: "#b35c30" };
 
 function VersusHeader({ participants }: { participants: Participant[] }) {
   const { t } = useTranslation(["conversation", "common"]);
@@ -162,7 +162,7 @@ export function SpectatePage() {
                   side={seat === 2 ? "right" : "left"}
                   name={p?.agent.name ?? t("agentFallback")}
                   avatar={p?.agent.avatar}
-                  color={SEAT_COLOR[seat] ?? "#7c5cff"}
+                  color={SEAT_COLOR[seat] ?? "#4f6f37"}
                   turnIndex={item.turn_index}
                   content={item.content}
                   streaming={!item.done}

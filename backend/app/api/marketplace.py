@@ -191,6 +191,10 @@ async def fork_listing(
             params=copy.deepcopy(source_skill.params or []),
             tags=copy.deepcopy(source_skill.tags or []),
             executable=copy.deepcopy(source_skill.executable) if source_skill.executable else None,
+            # Carry the SKILL.md pack so a forked imported-skill keeps its pack.
+            skill_md=getattr(source_skill, "skill_md", "") or "",
+            manifest=copy.deepcopy(getattr(source_skill, "manifest", None)),
+            resources=copy.deepcopy(getattr(source_skill, "resources", None)),
             source="upload",
         )
         session.add(skill_out)

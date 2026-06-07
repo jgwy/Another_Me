@@ -6,6 +6,7 @@
     "marketplace": "Marketplace",
     "relationships": "Network",
     "sandbox": "Sandbox",
+    "createScenario": "New scene",
     "inbox": "Inbox"
   },
   "cta": {

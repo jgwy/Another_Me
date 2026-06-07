@@ -69,10 +69,17 @@ t("common:actions.save");
 ## Design system
 
 A unified token layer lives in an `@theme { … }` block in `src/styles/index.css`
-and is consumed app-wide (no `tailwind.config.js`, no PostCSS):
+and is consumed app-wide (no `tailwind.config.js`, no PostCSS). The theme is
+**自然治愈 (warm-natural), light**: a paper-cream canvas, **moss-green `brand`**
+as the single hero accent, **warm-terracotta `accent`** touches, soft warm-tinted
+shadows and paper rounding. Typography pairs **Fraunces** (rounded organic
+display, applied to headings via `--font-display`) with **Nunito Sans** (warm
+humanist body, `--font-sans`); JetBrains Mono for code. Token **names are stable**
+across themes — only their values changed when retheming away from the previous
+dark/violet palette, so every consumer keeps working.
 
 - **Surfaces/text/brand**: `canvas / surface / surface-2 / elevated`, `ink /
-  muted / faint`, violet `brand` + emerald `accent`.
+  muted / faint`, moss-green `brand` + terracotta `accent`.
 - **Scenario accents** (shared by the world map + cards): `--color-scn-*`
   (exchange/cafe/lab/coding).
 - **Journey palette** (travel-frog `agent_status`): `--color-journey-*`
@@ -85,12 +92,16 @@ and is consumed app-wide (no `tailwind.config.js`, no PostCSS):
 
 ## The living world (island)
 
-`features/island/` is a full-screen, immersive **living world**: ambient
-resident twins milling about, four refined scenario buildings, and a
-**travel-frog journey visualization** — a dispatched twin thinks, departs,
-moves, meets, talks, and returns, animated with Motion. Clicking focuses an
-**encounter** (spectate / read its report); buildings are status surfaces, not
-"dispatch here" buttons (the old building-selection flow is gone).
+`features/island/` is a full-screen, immersive **living world**, now a light
+**2.5D isometric** map (a CSS/SVG dimetric projection in `iso.ts` — no game
+engine, no sprite sheets). Buildings render from the **dynamic scenario list**
+(`scenario.meta` coords + category, not a hardcoded 4); ambient resident **小人**
+wander the meadow, and the user's twin is a little walking character that thinks,
+departs, crosses the world, meets, talks, and returns — animated with Motion
+(transform/opacity only, 60fps). **Clicking a building enters its plaza**
+(`/plaza/:scenarioId`); clicking the twin (or a journey-panel row) focuses an
+**encounter** to spectate / read its report. Buildings are status surfaces, not
+"dispatch here" buttons.
 
 It renders against the typed data seam in `src/lib/trips.ts` — the contract
 `Trip` / `TripEncounter` / `TripPlan` shapes (`agent_status`, `status`,
@@ -99,11 +110,28 @@ per-encounter `opponent` / `match_reasons` / `match_risks` / `postcard`), the
 `useTripJourney`. For a **real** trip, `useTripJourney` subscribes to the
 journey SSE stream (`GET /api/trips/{id}/stream`, see `openTripStream` in
 `src/lib/sse.ts`) and feeds the live `agent_status` + active encounter straight
-into the TravelFrog state machine; encounter/trip ends refetch the trip so
+into the `IsoTraveler` layer; encounter/trip ends refetch the trip so
 reports + postcards land. For a **mock/demo** trip it runs a client-side
 simulator instead, so the world is alive without a backend. Either way it emits
 a smooth 0..1 `progress` for 60fps path tweening, and freezes on the trip's real
 phase under reduced motion. At integration only the mock fallback comes out.
+
+## The plaza
+
+`features/plaza/` (route `/plaza/:scenarioId`, reached by clicking a building) is
+the same world up close: the **other users' twins** present in that scene drift
+around an isometric plaza as little characters (小人) you can **click** (→ focus
+the twin), and **encounters underway are spectatable**. It consumes **presence**:
+a snapshot poll (`GET /api/scenarios/{id}/presence`) plus an SSE channel
+(`GET /api/scenarios/{id}/stream`) speaking the **locked contract** events
+`presence-snapshot` / `presence-enter` / `presence-move` / `presence-leave` /
+`encounter-started` (+ `ping`), wired in `features/plaza/presence.ts` — which
+normalizes the wire `PresenceEntry` rows into the UI's `PresenceTwin` — with the
+same **real-first, typed-mock fallback** pattern as `trips.ts` (a gentle simulator
+keeps the mock plaza lively). The caller's own travelling twin is overlaid when
+its journey has it in that scene. Plaza copy lives in a runtime `plaza` i18n
+bundle (zh↔en) registered from the feature, so it never touches the shared
+`src/i18n` files.
 
 ## Feature surfaces
 
@@ -114,7 +142,9 @@ demonstrable before the backend is wired. Hooks live in `src/lib/queries.ts`
 
 | Route | Feature | Real endpoints (mock fallback) |
 | --- | --- | --- |
-| `/` | **Living world** (island) | `GET /api/trips` + journey SSE `/api/trips/{id}/stream` |
+| `/` | **2.5D living world** (island) — N buildings from the dynamic scenario list; "新建场景" affordance | `GET /api/scenarios`, `GET /api/trips` + journey SSE `/api/trips/{id}/stream` |
+| `/plaza/:scenarioId` | **Plaza** — present twins (小人) drift + are clickable; spectate encounters | `GET /api/scenarios/{id}/presence` + presence SSE `/api/scenarios/{id}/stream` |
+| `/scenarios/new` | **Create a scenario** — author your own stage (kind/topics/scene prompt) | `POST /api/scenarios` |
 | `/agents/new` | **捏脸 three entries** — questionnaire · NL guided · paste-corpus | `POST /api/agents/generate`, `POST /api/agents` (sends `prompt_config` + `skill_ids`) |
 | `/agents/:id` | Twin profile + **dual-mode tune** (guided form ↔ raw `prompt_config` JSON) + dispatch rail | `PATCH /api/agents/{id}` |
 | `/dispatch` | **Autonomous dispatch** — only Task + prompts; reveals the explainable plan (reasons/risks) | `POST /api/trips` |
@@ -133,7 +163,7 @@ new twin (own free-text uploads still flow through as `uploaded_skills`).
 
 ```
 src/
-  i18n/       index.ts (i18next init, zh default, 12 namespaces) · locales/{zh,en}/<ns>.json
+  i18n/       index.ts (i18next init, zh default, 13 namespaces) · locales/{zh,en}/<ns>.json
   lib/        api.ts (typed fetch + all v2 types + PromptConfig helpers)
               trips.ts (contract Trip data + mock + useTripJourney SSE/sim driver)
               queries.ts (React Query hooks + mock fallback) · sse.ts (conversation + trip streams)
@@ -141,7 +171,7 @@ src/
   store/      auth.ts (Zustand auth store, persisted to localStorage)
   styles/     index.css (Tailwind v4 @theme design tokens + base + utilities)
   components/ layout/ (AppShell, NavBar + unread dot, PageHeader, LanguageSwitcher) · ui/
-  features/   island/ (living world + journey) · agents/ · create-agent/ (3 entries + tune)
+  features/   island/ (2.5D living world + journey) · plaza/ (presence-driven) · agents/ · create-agent/ (3 entries + tune)
               · dispatch/ (autonomous) · trips/ · marketplace/ (v2) · sandbox/
               · inbox/ · relationships/ · reports/ · conversation/ · auth/
   routes/     router.tsx (createBrowserRouter + protected routes)

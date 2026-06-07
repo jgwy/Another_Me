@@ -38,6 +38,13 @@ class Skill(Base):
     # Canonical capability text; ``content`` mirrors it for v1 back-compat.
     prompt_body: Mapped[str] = mapped_column(Text, default="", server_default="")
     content: Mapped[str] = mapped_column(Text, default="")
+    # Raw SKILL.md body (Anthropic-style skill pack). ``prompt_body`` is derived
+    # from this on import (frontmatter stripped); kept verbatim for preview/round-trip.
+    skill_md: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # Parsed SKILL.md frontmatter: {name, description, version, triggers: [...]}.
+    manifest: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Packaged resource manifest from the .zip: [{path, kind, ref, size?}, ...].
+    resources: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     params: Mapped[list] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
     tags: Mapped[list] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
     # Reserved execution hook: {"kind": "none|script|mcp", "ref": str?, "config": {}}.

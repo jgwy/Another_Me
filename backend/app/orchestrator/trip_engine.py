@@ -1,8 +1,12 @@
 """Autonomous trip orchestrator (§6): plan → travel → encounters → return.
 
 One dispatch = one :class:`Trip`. The planner (``services.planner``) picks 2–4
-scenes and explainably matches opponents; the twin then *travels* through the
-encounters — each one reusing the existing conversation **turn protocol**
+scenes (it no longer pre-matches opponents); the twin then *travels* through the
+encounters and — refactor-2 §4 (*scenario-first matching*) — on **arrival** at each
+scene the opponent is matched **locally** from who is standing in that plaza right
+now (``presence.list_present_agent_ids`` ∩ eligible, with an eligible-all fallback),
+and ``presence.registry.publish_encounter`` fires so plazas show ``encounter-started``.
+Each encounter reuses the existing conversation **turn protocol**
 (R12–R14) + per-encounter SSE — over a configurable real duration, advancing an
 ``agent_status`` state machine the world map renders live:
 
@@ -31,6 +35,8 @@ from app.models import Agent, Report, Scenario, Trip, TripEncounter
 from app.orchestrator.engine import create_conversation, run_conversation
 from app.orchestrator.postcards import build_postcard, build_trip_summary
 from app.orchestrator.pubsub import trip_bus
+from app.services import presence
+from app.services.matching import match_opponent_explained
 from app.services.notifications import create_notification
 from app.services.relationships import upsert_relationship
 
@@ -156,11 +162,32 @@ async def _run_trip(trip_id: uuid.UUID) -> None:
             trip = await session.get(Trip, trip_id)
             scenario = await session.get(Scenario, enc.scenario_id)
             agent = await session.get(Agent, agent_id)
-            opponent = (
-                await session.get(Agent, enc.opponent_agent_id)
-                if enc.opponent_agent_id is not None
-                else None
-            )
+
+            # Scenario-first matching (refactor-2 §4): pick the opponent **here, on
+            # arrival**, from who is standing in this plaza right now (presence ∩
+            # eligible). If the plaza is empty or no one present is eligible, fall
+            # back to the scenario's eligible-all so there's always someone to meet.
+            opponent: Agent | None = None
+            reasons: list[str] = []
+            risks: list[str] = []
+            if scenario is not None and agent is not None:
+                present_ids = {
+                    aid
+                    for aid in presence.list_present_agent_ids(scenario.id)
+                    if aid != agent_id
+                }
+                if enc.opponent_agent_id is not None:
+                    # Defensive: honor an opponent pinned upstream (not done at plan time).
+                    opponent = await session.get(Agent, enc.opponent_agent_id)
+                if opponent is None and present_ids:
+                    opponent, reasons, risks = await match_opponent_explained(
+                        session, scenario, agent, candidate_ids=present_ids
+                    )
+                if opponent is None:  # empty/insufficient plaza → eligible-all fallback
+                    opponent, reasons, risks = await match_opponent_explained(
+                        session, scenario, agent
+                    )
+
             if scenario is None or agent is None or opponent is None:
                 enc.status = "skipped"
                 await session.commit()
@@ -171,6 +198,9 @@ async def _run_trip(trip_id: uuid.UUID) -> None:
                 continue
             convo = await create_conversation(session, scenario, agent, opponent)
             enc.conversation_id = convo.id
+            enc.opponent_agent_id = opponent.id
+            enc.match_reasons = list(reasons)
+            enc.match_risks = list(risks)
             enc.status = "running"
             trip.status = "in_encounter"
             trip.agent_status = "meeting"
@@ -189,6 +219,9 @@ async def _run_trip(trip_id: uuid.UUID) -> None:
             "scenario_id": str(scenario_id), "scenario_key": scenario_key,
             "opponent_agent_id": str(opponent_id), "conversation_id": str(convo_id),
         })
+        # Tell the scene's plaza an encounter just began (flips occupants to
+        # ``talking`` + emits ``encounter-started`` on the per-scenario SSE bus).
+        presence.registry.publish_encounter(scenario_id, convo_id, [agent_id, opponent_id])
         _publish(trip_id, "agent-status", {
             "trip_id": str(trip_id), "agent_id": str(agent_id), "agent_status": "talking",
         })

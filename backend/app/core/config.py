@@ -31,8 +31,14 @@ class Settings(BaseSettings):
     max_concurrent_conversations: int = 4
 
     # --- Trips (autonomous "travelling-frog" journeys, §6) ---
-    # Real wall-clock duration a trip is spread over (env: TRIP_DURATION). Encounters
-    # are interleaved with travel pauses summing to roughly this.
+    # Canonical default wall-clock duration (seconds) a trip is spread over
+    # (env: TRIP_DURATION_SECONDS). Demo runs fast (~45s); set it to hours for a
+    # slower, "travelling-frog"-style world. Trip creation uses this as the default
+    # when the request omits ``duration_seconds``.
+    trip_duration_seconds: int = 45
+    # Deprecated v1 alias of ``trip_duration_seconds`` (env: TRIP_DURATION). Kept so
+    # any older config / code that reads it keeps working; new code should prefer
+    # ``trip_duration_seconds``.
     trip_duration: int = 60
     # Default number of encounters per trip (clamped to 2..4 by the planner).
     trip_max_encounters: int = 3

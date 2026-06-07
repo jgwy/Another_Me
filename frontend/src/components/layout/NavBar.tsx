@@ -15,6 +15,7 @@ const NAV_ITEMS: { key: string; to: string }[] = [
   { key: "relationships", to: "/relationships" },
   { key: "sandbox", to: "/sandbox" },
   { key: "marketplace", to: "/marketplace" },
+  { key: "createScenario", to: "/scenarios/new" },
 ];
 
 function isActive(pathname: string, to: string): boolean {
@@ -92,7 +93,7 @@ export function NavBar() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                  "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors",
                   isActive(pathname, item.to)
                     ? "bg-surface-2/70 text-ink"
                     : "text-muted hover:bg-surface-2/50 hover:text-ink",
@@ -107,7 +108,7 @@ export function NavBar() {
         <div className="flex items-center gap-3">
           {demo && (
             <span
-              className="hidden rounded-full bg-warning/10 px-2.5 py-1 text-xs text-warning ring-1 ring-warning/30 sm:inline"
+              className="hidden whitespace-nowrap rounded-full bg-warning/10 px-2.5 py-1 text-xs text-warning ring-1 ring-warning/30 sm:inline"
               title={t("common:demo.tooltip")}
             >
               {t("common:demo.badge")}

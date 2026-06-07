@@ -18,6 +18,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Input } from "../../components/ui/Input";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { Spinner } from "../../components/ui/Spinner";
+import { Tabs } from "../../components/ui/Tabs";
 import { spring, staggerContainer } from "../../lib/anim";
 import { cn } from "../../lib/cn";
 import { MarketplaceCard } from "./MarketplaceCard";
@@ -26,9 +27,9 @@ import { UploadModal } from "./UploadModal";
 import { VersionsModal } from "./VersionsModal";
 
 const KIND_FILTERS = [
-  { value: "all", labelKey: "filters.all" },
-  { value: "agent", labelKey: "filters.agents" },
-  { value: "skill", labelKey: "filters.skills" },
+  { value: "all", labelKey: "filters.all", tabKey: "tabs.all" },
+  { value: "agent", labelKey: "filters.agents", tabKey: "tabs.agents" },
+  { value: "skill", labelKey: "filters.skills", tabKey: "tabs.skills" },
 ] as const;
 
 const SORTS = [
@@ -191,6 +192,14 @@ export function MarketplacePage() {
         )}
       </AnimatePresence>
 
+      {/* Dual marketplace: Agent market ↔ Skill market */}
+      <Tabs
+        tabs={KIND_FILTERS.map((o) => ({ id: o.value, label: t(o.tabKey) }))}
+        value={kind}
+        onChange={(id) => setKind(id as KindFilter)}
+        layoutId="market-kind"
+      />
+
       {/* Controls */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="sm:max-w-xs sm:flex-1">
@@ -203,11 +212,6 @@ export function MarketplacePage() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented
-            value={kind}
-            onChange={(v) => setKind(v)}
-            options={KIND_FILTERS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
-          />
           <Segmented
             value={sort}
             onChange={(v) => setSort(v)}
@@ -305,7 +309,11 @@ export function MarketplacePage() {
         </Card>
       </section>
 
-      <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        initialKind={kind === "skill" ? "skill" : "agent"}
+      />
       <VersionsModal
         item={versionsItem}
         open={versionsItem != null}

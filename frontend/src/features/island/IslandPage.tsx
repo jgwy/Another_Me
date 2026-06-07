@@ -1,39 +1,36 @@
 /**
- * The living world (refactor plan §9).
+ * The living world (refactor plan §7) — a light **2.5D isometric** map.
  *
- * A full-bleed, immersive map where the user's twin — a little travel frog —
- * thinks at home, sets out, crosses the world, meets other twins, talks, and
- * returns. The world is rendered as two stacked, pixel-aligned SVG layers:
+ * Buildings render from the **dynamic scenario list** (`scenario.meta` coords),
+ * not a hardcoded set, so a user-created scene shows up the moment it exists.
+ * The user's twin is a little character (小人) that thinks at home, sets out,
+ * crosses the world, meets, talks, and returns — driven by the journey tick.
+ * Clicking a building **enters its plaza**; clicking the twin (or a panel row)
+ * focuses that encounter to spectate / read.
  *
- *   - `WorldMap`   — the static world (ground, routes, districts, plaza, home,
- *                    partners, ambient residents). Memoized; never re-renders
- *                    on the per-frame journey tick.
- *   - `TravelFrog` — the live layer, driven every frame by `useJourneySimulation`
- *                    so the frog animates across the map at 60fps.
- *
- * Clicking an encounter (a partner, the frog, or a panel row) *focuses* it to
- * spectate/read — it never dispatches. Buildings are status surfaces only.
- *
- * Data seam: everything renders against the typed trips mock via `useActiveTrip`
- * + `useJourneySimulation`. At integration, swap those for the real
- * `/api/trips` list + the journey SSE stream — the visualization is unchanged.
+ * Two stacked SVG layers keep it cheap: `IsoWorld` (static, memoized — ground,
+ * routes, plaza, ambient residents, buildings) and `IsoTraveler` (the live hero,
+ * the only thing that ticks per frame). Data comes from `useScenarios` +
+ * `useActiveTrip` / `useTripJourney`, each real-endpoint-first with a typed-mock
+ * fallback, so the world is alive before the backend lands.
  */
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useTranslation } from "react-i18next";
 
-import type { ScenarioKey } from "../../lib/api";
-import { useDemoMode } from "../../lib/queries";
+import type { Scenario } from "../../lib/api";
+import { useDemoMode, useScenarios } from "../../lib/queries";
 import { isActiveTrip, useActiveTrip, useTripJourney } from "../../lib/trips";
 import { useAuthStore } from "../../store/auth";
 import { fadeUp, spring, staggerContainer } from "../../lib/anim";
 import { Button } from "../../components/ui/Button";
-import { BUILDING_ORDER, isSceneKey } from "./worldLayout";
-import { WorldMap } from "./WorldMap";
-import type { WorldScene } from "./WorldMap";
-import type { BuildingTone } from "./WorldBuilding";
-import { TravelFrog } from "./TravelFrog";
+import { computeIsoLayout } from "./iso";
+import { IsoWorld } from "./IsoWorld";
+import type { BuildingScene } from "./IsoWorld";
+import type { BuildingTone } from "./IsoBuilding";
+import { IsoTraveler } from "./IsoTraveler";
+import { isSceneKey } from "./worldLayout";
 import { JourneyPanel } from "./JourneyPanel";
 import { EncounterFocus } from "./EncounterFocus";
 
@@ -44,61 +41,56 @@ export function IslandPage() {
   const demo = useDemoMode();
   const reduce = useReducedMotion() ?? false;
 
+  const { data: scenarios } = useScenarios();
+  const layout = useMemo(() => computeIsoLayout(scenarios ?? []), [scenarios]);
+
   const { trip } = useActiveTrip();
-  // The unified live driver: SSE for real trips, simulator for mock/demo trips.
   const journey = useTripJourney(trip, { enabled: !reduce });
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
-  // Coerce each encounter's (possibly unknown) scenario_key to a world building,
-  // keeping a stable building per leg so the frog's route is well-defined.
-  const encKeys = useMemo<ScenarioKey[]>(
-    () =>
-      journey.encounters.map((e, i) =>
-        isSceneKey(e.scenario_key) ? e.scenario_key : BUILDING_ORDER[i % BUILDING_ORDER.length]!,
-      ),
-    [journey.encounters],
+  const shortName = useCallback(
+    (s: Scenario): string => {
+      if (isSceneKey(s.key)) return t(`island:scenarios.${s.key}`);
+      const seg = s.name.split("·")[0]?.trim();
+      return seg || s.name;
+    },
+    [t],
   );
 
-  // Per-building view model, derived from the trip's truth (done/active/upcoming).
-  // Memoized so the static WorldMap never re-renders on the journey tick.
-  const scenes = useMemo<WorldScene[]>(() => {
+  // Per-building view model (idle / active / done / upcoming), derived from the
+  // trip's truth. Memoized so the static world never re-renders on the tick.
+  const scenes = useMemo<Map<string, BuildingScene>>(() => {
+    const map = new Map<string, BuildingScene>();
     const active = isActiveTrip(trip);
-    return BUILDING_ORDER.map((key) => {
-      const idx = journey.encounters.findIndex((_, i) => encKeys[i] === key);
-      const enc = idx >= 0 ? journey.encounters[idx] : undefined;
-      if (!trip || !enc) {
-        return {
-          key,
-          name: t(`island:scenarios.${key}`),
-          statusLabel: t("island:world.openScene"),
-          tone: "idle" as BuildingTone,
-          encounterIndex: null,
-          partnerName: null,
-          partnerAvatar: null,
-          done: false,
-        };
+    for (const b of layout.buildings) {
+      const enc = trip ? journey.encounters.find((e) => e.scenario_id === b.scenario.id) : undefined;
+      let tone: BuildingTone = "idle";
+      let statusLabel = t("island:world.openScene");
+      if (trip && enc) {
+        const done = enc.status === "completed" || (active && enc.seq < journey.activeIndex);
+        const isActive = active && !done && enc.seq === journey.activeIndex;
+        tone = done ? "done" : isActive ? "active" : "upcoming";
+        statusLabel = done
+          ? t("common:status.completed")
+          : isActive
+            ? t(`island:journey.status.${journey.agentStatus}`)
+            : t("common:status.queued");
       }
-      const done = enc.status === "completed" || (active && enc.seq < journey.activeIndex);
-      const isActive = active && !done && enc.seq === journey.activeIndex;
-      const tone: BuildingTone = done ? "done" : isActive ? "active" : "upcoming";
-      const statusLabel = done
-        ? t("common:status.completed")
-        : isActive
-          ? t(`island:journey.status.${journey.agentStatus}`)
-          : t("common:status.queued");
-      return {
-        key,
-        name: t(`island:scenarios.${key}`),
-        statusLabel,
-        tone,
-        encounterIndex: enc.seq,
-        partnerName: enc.opponent?.name ?? null,
-        partnerAvatar: enc.opponent?.avatar ?? null,
-        done,
-      };
+      map.set(b.scenario.id, { name: shortName(b.scenario), statusLabel, tone });
+    }
+    return map;
+  }, [layout, trip, journey.encounters, journey.activeIndex, journey.agentStatus, t, shortName]);
+
+  // The hero's route: each encounter's building anchor (fallback by order).
+  const route = useMemo(() => {
+    const n = Math.max(1, layout.buildings.length);
+    const anchors = journey.encounters.map((e, i) => {
+      const b = layout.byScenarioId.get(e.scenario_id) ?? layout.buildings[i % n];
+      return b ? b.anchor : layout.plaza;
     });
-  }, [trip, journey.encounters, journey.activeIndex, journey.agentStatus, encKeys, t]);
+    return { home: layout.home, plaza: layout.plaza, anchors };
+  }, [layout, journey.encounters]);
 
   const focused = useMemo(
     () => (trip && focusIndex !== null ? journey.encounters.find((e) => e.seq === focusIndex) : undefined),
@@ -111,13 +103,15 @@ export function IslandPage() {
   const onReport = useCallback((cid: string) => navigate(`/conversations/${cid}/report`), [navigate]);
   const onDispatch = useCallback(() => navigate("/dispatch"), [navigate]);
   const onBuildTwin = useCallback(() => navigate("/agents/new"), [navigate]);
+  const onCreateScenario = useCallback(() => navigate("/scenarios/new"), [navigate]);
+  const onEnterPlaza = useCallback((scenarioId: string) => navigate(`/plaza/${scenarioId}`), [navigate]);
   const onViewTrip = useCallback(() => {
     if (trip) navigate(`/trips/${trip.id}`);
   }, [navigate, trip]);
 
-  const welcome = user?.username
-    ? t("island:welcomeNamed", { name: user.username })
-    : t("island:welcome");
+  const twinName = trip?.agent?.name ?? user?.username ?? "我的分身";
+  const twinAvatar = trip?.agent?.avatar ?? null;
+  const welcome = user?.username ? t("island:welcomeNamed", { name: user.username }) : t("island:welcome");
 
   const panel = (
     <JourneyPanel
@@ -141,19 +135,22 @@ export function IslandPage() {
             transition={spring.soft}
             className="world-canvas world-vignette relative h-[82vh] min-h-[560px] overflow-hidden rounded-3xl border border-border/60 shadow-float"
           >
-            <WorldMap
+            <IsoWorld
+              layout={layout}
               scenes={scenes}
               homeLabel={t("island:world.home")}
               plazaLabel={t("island:world.plaza")}
               reduce={reduce}
-              onFocusEncounter={onFocusEncounter}
+              onEnter={onEnterPlaza}
             />
-            <TravelFrog
-              keys={encKeys}
+            <IsoTraveler
+              route={route}
               status={journey.agentStatus}
               encounterIndex={journey.activeIndex}
               progress={journey.progress}
               reduce={reduce}
+              twinName={twinName}
+              twinAvatar={twinAvatar}
               onFocus={onFocusEncounter}
             />
 
@@ -191,6 +188,9 @@ export function IslandPage() {
                       {t("island:journey.viewTrip")}
                     </Button>
                   )}
+                  <Button variant="ghost" size="sm" onClick={onCreateScenario}>
+                    {t("island:cta.createScenario")}
+                  </Button>
                   <Button variant="secondary" size="sm" onClick={onBuildTwin}>
                     {t("island:cta.buildTwin")}
                   </Button>
@@ -208,6 +208,9 @@ export function IslandPage() {
 
             {/* mobile actions */}
             <div className="pointer-events-auto absolute inset-x-0 bottom-0 flex justify-center gap-2 p-5 sm:hidden">
+              <Button variant="ghost" size="sm" onClick={onCreateScenario}>
+                {t("island:cta.createScenario")}
+              </Button>
               <Button variant="secondary" size="sm" onClick={onBuildTwin}>
                 {t("island:cta.buildTwin")}
               </Button>

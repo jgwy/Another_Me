@@ -22,6 +22,15 @@
 > **additive and optional** (defaulted) so existing rows/clients keep working until the owning
 > workstream migrates the model and backfills.
 
+> **Refactor-2 status (foundation locked).** Migration head is now **`06e68300418b`**. This foundation
+> shipped the schema + a single additive migration and **locked** these new contracts as final shapes
+> with **STUB (501)** endpoints for the parallel backend/frontend workstreams to fill:
+> - **Scenario** gains `owner_id` / `is_public` and a documented `meta` (map/visual/plaza) shape;
+>   `POST /api/scenarios` (user-created) + plaza **presence** (`enter`/`leave`/`presence`/`stream`, §3.4 + SSE §4.3).
+> - **Skill** gains `skill_md` / `manifest` / `resources` (Anthropic-style packs); `POST /api/skills/import` (.zip → SKILL.md).
+> - new **McpServer** model + `/api/mcps` CRUD + `connect` (§3.15), ported from Xyzen.
+> - **Trip** default duration now reads `TRIP_DURATION_SECONDS` (demo fast / prod long).
+
 ---
 
 ## 1. Conventions
@@ -111,6 +120,9 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
   "description": "string",
   "prompt_body": "string",
   "content": "string",
+  "skill_md": "string",
+  "manifest": { "name": "string", "description": "string", "version": "string", "triggers": ["string"] },
+  "resources": [ { "path": "string", "kind": "string", "ref": "string", "size": 0 } ],
   "params": [ { "...SkillParam": "..." } ],
   "tags": ["string"],
   "executable": { "kind": "none | script | mcp", "ref": "string?", "config": {} },
@@ -124,8 +136,12 @@ Field type notation: `string`, `int`, `bool`, `uuid` (string), `datetime` (ISO s
 > `prompt_body` is the canonical capability text. `content` is the **deprecated v1 alias** kept during
 > migration: the server keeps the two mirrored, so clients may read either (prefer `prompt_body`).
 > `agent_id == null` ⇒ a **standalone/library** skill. `executable` is a **reserved hook** (not executed
-> this round). `params`, `tags`, `description`, `is_public`, `executable`, `updated_at` are v2 fields and
-> default empty until the skills-market workstream migrates the model.
+> this round). `params`, `tags`, `description`, `is_public`, `executable`, `updated_at` are v2 fields.
+> **Skill packs (refactor-2):** `skill_md` is the raw `SKILL.md` body (Anthropic-style), `manifest` is
+> its parsed frontmatter (`name`/`description`/`version`/`triggers`), and `resources` is the packaged
+> file manifest from the imported `.zip`. They are populated by `POST /api/skills/import`; `prompt_body`
+> is **derived** from `SKILL.md` (frontmatter stripped). `skill_md` defaults to `""`; `manifest` /
+> `resources` are `null` for skills not created from a pack.
 
 ### SkillParam
 
@@ -237,7 +253,7 @@ never recites a third-person "character sheet"). This is also the shape returned
 ```json
 {
   "id": "uuid",
-  "key": "exchange | cafe | lab | coding_club",
+  "key": "exchange | cafe | lab | coding_club | <user-slug>",
   "name": "string",
   "description": "string",
   "kind": "business | empathy | generic",
@@ -245,13 +261,27 @@ never recites a third-person "character sheet"). This is also the shape returned
   "scene_prompt": "string",
   "ending_prompt": "string",
   "is_full": true,
-  "meta": { "building": "string", "x": 0, "y": 0 },
+  "owner_id": "uuid?",
+  "is_public": true,
+  "meta": {
+    "building": "string",
+    "x": 0,
+    "y": 0,
+    "category": "string",
+    "report_dialect": "string",
+    "visual": { "sprite": "string?", "palette": "string?", "icon": "string?" },
+    "plaza": { "width": 0, "height": 0, "spawn": [ { "x": 0, "y": 0 } ], "props": [] }
+  },
   "created_at": "datetime"
 }
 ```
 
 > `kind` drives report dialect: `exchange → business`, `cafe → empathy`. `lab`/`coding_club` are
-> placeholders (`is_full: false`).
+> placeholders (`is_full: false`). **Refactor-2:** `owner_id == null` ⇒ a built-in/**system** scenario;
+> otherwise it is **user-created**. `is_public` controls listing visibility (system seeds default
+> `true`). `meta` is free-form; every key above is **optional** and the 2.5D world renderer falls back to
+> defaults — `x`/`y` place the building on the 0..100 island grid, `category` buckets it
+> (`business|social|health|art|…`), and `plaza` describes the per-scenario presence stage.
 
 ### Dispatch
 
@@ -412,6 +442,42 @@ never recites a third-person "character sheet"). This is also the shape returned
 }
 ```
 
+### McpServer (refactor-2 — MCP tool server, ported from Xyzen)
+
+```json
+{
+  "id": "uuid",
+  "owner_id": "uuid",
+  "agent_id": "uuid?",
+  "name": "string",
+  "description": "string",
+  "category": "string",
+  "transport": "stdio | sse | http",
+  "command": "string?",
+  "url": "string?",
+  "config": { "any": "json" },
+  "status": "unknown | online | offline | error",
+  "tools": [ { "name": "string", "description": "string", "inputSchema": {} } ],
+  "is_public": false,
+  "last_checked_at": "datetime?",
+  "created_at": "datetime",
+  "updated_at": "datetime?"
+}
+```
+
+> A registered MCP server the **sandbox** connects to so its tools can be invoked during encounters.
+> `agent_id == null` ⇒ a library/standalone server; otherwise it is attached to that agent. Provide
+> `command` for `stdio` transport, or `url` for `sse`/`http`. **Secrets are write-only:** the create/patch
+> bodies accept a `token` (Xyzen-compatible) and may carry secrets in `config`, but `token` is **never
+> serialized** and `config` is **sanitized** in responses. `status`/`tools`/`last_checked_at` are filled
+> by the connect/probe logic (Phase 2).
+
+### McpConnectResponse
+
+```json
+{ "id": "uuid", "status": "online | offline | error", "tools": [ { "...tool": "..." } ], "error": "string?" }
+```
+
 ### Trip (§6 — autonomous multi-encounter journey)
 
 ```json
@@ -435,8 +501,9 @@ never recites a third-person "character sheet"). This is also the shape returned
 ```
 
 > One dispatch = one Trip. The autonomous planner picks scenes and (explainably) matches opponents,
-> then the twin travels through **2–4 encounters** over `duration_seconds` (default from `TRIP_DURATION`
-> env). The world map renders the journey live from `status` / `agent_status`.
+> then the twin travels through **2–4 encounters** over `duration_seconds` (default from the
+> `TRIP_DURATION_SECONDS` env — demo fast / prod long). The world map renders the journey live from
+> `status` / `agent_status`.
 
 ### TripPlan / TripStop
 
@@ -523,6 +590,31 @@ never recites a third-person "character sheet"). This is also the shape returned
   "nodes": [ { "agent": { "...AgentSummary": "..." }, "owned": false } ],
   "edges": [ { "...Relationship": "..." } ]
 }
+```
+
+### PresenceEntry (refactor-2 — plaza presence)
+
+```json
+{
+  "agent_id": "uuid",
+  "user_id": "uuid?",
+  "agent": { "...AgentSummary?": "..." },
+  "kind": "user | npc",
+  "status": "idle | walking | talking",
+  "x": 0.0,
+  "y": 0.0,
+  "joined_at": "datetime?",
+  "last_seen": "datetime?"
+}
+```
+
+> One agent currently present in a scenario's plaza. `x`/`y` are plaza coordinates on the 0..100 grid
+> (the 2.5D world). `kind = npc` for seeded/system NPCs (no `user_id`).
+
+### PresenceSnapshot
+
+```json
+{ "scenario_id": "uuid", "count": 0, "entries": [ { "...PresenceEntry": "..." } ] }
 ```
 
 ---
@@ -634,14 +726,59 @@ Draft a `prompt_config` (the social-twin brain) from natural language or a perso
 ```
 - `questions`: skill-creator-style clarifying follow-ups (may be empty when confident).
 
-### 3.4 Scenarios — 🟢 implemented
+### 3.4 Scenarios — 🟢 implemented (refactor-2 adds 🟡 create + presence)
 
 #### `GET /api/scenarios` 🔓
 - **200** → `Scenario[]`
+- Refactor-2: the scenarios-open workstream adds optional filters `category`, `owner` (`me`|uuid),
+  `is_public` and visibility (public OR owned) — additive query params; the array shape is unchanged.
 
 #### `GET /api/scenarios/{id_or_key}` 🔓
 Accepts either the scenario UUID or its `key` (e.g. `exchange`).
 - **200** → `Scenario` · **404**
+
+#### `POST /api/scenarios` 🔑 🟡 (refactor-2 §2)
+Create a user-owned scenario. The server slugifies a unique `key`, stamps `owner_id = caller`, and
+merges `category` into `meta`.
+- **Request** → `ScenarioCreate`
+```json
+{
+  "name": "读书会",
+  "description": "string?",
+  "kind": "business | empathy | generic",
+  "topics": ["string"],
+  "scene_prompt": "string?",
+  "ending_prompt": "string?",
+  "category": "string?",
+  "key": "string?",
+  "is_public": true,
+  "meta": { "any": "json" }
+}
+```
+- **201** → `Scenario` · **409** key already taken · **422** validation
+
+#### `POST /api/scenarios/{id}/enter` 🔑 🟡 (refactor-2 §3/§6)
+Mark the caller's agent present in the scenario plaza (heartbeat upsert).
+- **Request** → `PresenceEnterRequest`
+```json
+{ "agent_id": "uuid", "x": 0.0, "y": 0.0 }
+```
+- **200** → `PresenceEntry` · **403** agent not owned · **404** scenario/agent
+
+#### `POST /api/scenarios/{id}/leave` 🔑 🟡 (refactor-2 §3/§6)
+- **Request** → `PresenceLeaveRequest`
+```json
+{ "agent_id": "uuid" }
+```
+- **200** → `{ "scenario_id": "uuid", "agent_id": "uuid", "left": true }` · **404**
+
+#### `GET /api/scenarios/{id}/presence` 🔓 🟡 (refactor-2 §3/§6)
+Snapshot of who is present in the plaza right now.
+- **200** → `PresenceSnapshot` · **404**
+
+#### `GET /api/scenarios/{id}/stream` 🔓 (SSE) 🟡 (refactor-2 §3/§6)
+Per-scenario presence channel for the 2.5D plaza (read-only). Events in §4.3.
+- **404** scenario not found
 
 ### 3.5 Dispatches — 🟢 implemented
 
@@ -775,6 +912,17 @@ Structured, reusable capability packs. `agent_id == null` ⇒ a library skill.
 ```
 - **201** → `Skill`
 
+#### `POST /api/skills/import` 🔑 🟡 (refactor-2 §5)
+Import a skill from a `.zip` pack (**`multipart/form-data`**). The server unzips, requires a
+`SKILL.md` at the root, parses its frontmatter into `manifest` + body into `skill_md`/`prompt_body`,
+records the packaged files in `resources`, and persists a library Skill (`source = "upload"`).
+- **Request** (`multipart/form-data`):
+  - `file`: the `.zip` (required)
+  - `is_public`: bool form field (default `false`)
+  - `agent_id`: uuid form field (optional — attach to an agent)
+- **201** → `Skill` (carries `skill_md` / `manifest` / `resources` for preview)
+- **422** no `SKILL.md` in the archive / invalid pack
+
 #### `GET /api/skills` 🔓
 - **Query:** `q`, `tags` (CSV, AND), `owner` (`me`|uuid), `agent_id`, `is_public`, `limit`, `offset`.
 - **200** → `{ items: Skill[], total, limit, offset }`
@@ -870,6 +1018,38 @@ Forward code to the sandbox-runner and return its result. The requested
 > `SandboxRunRequest` / `SandboxRunResult` mirror the runner's `/run` body and
 > 200 shape (§5). The endpoint adds **auth** + timeout clamping on top.
 
+### 3.15 MCP servers (refactor-2 §5) — 🟡 STUB (ported from Xyzen)
+
+Register MCP tool servers the **sandbox** connects to during encounters. Bodies are filled by Phase 2
+(connection/runtime: status probing + tool discovery). Secrets (`token` / secret `config` keys) are
+write-only and never serialized.
+
+#### `POST /api/mcps` 🔑 🟡
+- **Request** → `McpServerCreate`
+```json
+{ "name": "string", "description": "string?", "category": "string?", "transport": "stdio | sse | http", "command": "string?", "url": "string?", "token": "string?", "config": {}, "agent_id": "uuid?", "is_public": false }
+```
+- **201** → `McpServer` · **404** `agent_id` not found · **403** agent not owned
+
+#### `GET /api/mcps` 🔑 🟡
+List MCP servers visible to the caller (owned + public).
+- **Query:** `owner` (`me`|uuid), `agent_id`, `category`, `q`, `is_public`, `limit`, `offset`.
+- **200** → `{ items: McpServer[], total, limit, offset }`
+
+#### `GET /api/mcps/{id}` 🔑 🟡
+- **200** → `McpServer` · **403** · **404**
+
+#### `PATCH /api/mcps/{id}` 🔑 🟡 (owner)
+- **Request** (all optional): `name`, `description`, `category`, `transport`, `command`, `url`, `token`, `config`, `agent_id`, `is_public`.
+- **200** → `McpServer` · **403** · **404**
+
+#### `DELETE /api/mcps/{id}` 🔑 🟡 (owner)
+- **204** · **403** · **404**
+
+#### `POST /api/mcps/{id}/connect` 🔑 🟡 (owner)
+Probe/connect the server inside the sandbox and discover its tools (updates `status` / `tools`).
+- **200** → `McpConnectResponse` · **403** · **404**
+
 ---
 
 ## 4. SSE Event Payloads (LOCKED)
@@ -938,6 +1118,37 @@ Client rules:
 - On `trip-end`, close the stream and optionally fetch the summary report (`summary_report_id`).
 - Ignore unknown event names and `ping`.
 
+### 4.3 Plaza presence stream — `GET /api/scenarios/{id}/stream` 🟡 (refactor-2 §3/§6)
+
+The 2.5D plaza renders other users' 小人 entering / leaving / walking from these events. `data:` is JSON.
+
+```
+event: presence-snapshot
+data: {"scenario_id":"uuid","count":2,"entries":[{"...PresenceEntry":"..."}]}
+
+event: presence-enter
+data: {"scenario_id":"uuid","entry":{"...PresenceEntry":"..."}}
+
+event: presence-move
+data: {"scenario_id":"uuid","agent_id":"uuid","x":12.0,"y":34.0,"status":"walking"}
+
+event: presence-leave
+data: {"scenario_id":"uuid","agent_id":"uuid"}
+
+event: encounter-started
+data: {"scenario_id":"uuid","conversation_id":"uuid","agent_ids":["uuid","uuid"]}
+
+event: ping
+data: {"t":"2026-06-07T12:00:00Z"}
+```
+
+Client rules:
+- On connect, the server may emit one `presence-snapshot` to seed current occupants; thereafter apply
+  `presence-enter` / `presence-move` / `presence-leave` deltas.
+- `encounter-started` marks an in-plaza meeting; open the conversation stream (`conversation_id`) to
+  spectate it.
+- Ignore unknown event names and `ping`.
+
 ---
 
 ## 5. Internal Service — sandbox-runner (LOCKED)
@@ -982,8 +1193,14 @@ A standalone container with **no DB, no secrets, no external network**. The back
 | Relationships / graph | 🟢 implemented | relationship-graph (§8) |
 | sandbox-runner `/run` + `/health` | 🟢 implemented | foundation |
 | `POST /api/sandbox/run` (authed pass-through) | 🟢 implemented | integrate (§10) |
+| `POST /api/scenarios` (user-created) | 🟡 STUB | scenarios-open (r2 §2) |
+| Scenario presence (`enter`/`leave`/`presence`/`stream`) | 🟡 STUB | presence-multiplayer (r2 §3/§6) |
+| `POST /api/skills/import` (.zip → SKILL.md) | 🟡 STUB | skills-market (r2 §5) |
+| MCP servers (`/api/mcps` CRUD + `connect`) | 🟡 STUB | skills-market / sandbox (r2 §5) |
 
-> **Migration head:** `92740f62549b` (adds `agents.prompt_config`). New workstreams add their models +
+> **Migration head:** `06e68300418b` (refactor-2 foundation: `scenarios.owner_id`/`is_public`,
+> `skills.skill_md`/`manifest`/`resources`, new `mcp_servers` table). Chain:
+> `610db5a44c38 → 92740f62549b → 4aa2aa57b4ea → 06e68300418b`. New workstreams add their models +
 > migrations **on top of this head**, keeping a single linear chain.
 >
 > Later workstreams must keep paths, methods, auth, and JSON shapes **identical** to this document, and

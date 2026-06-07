@@ -216,6 +216,59 @@
     "origin": {
       "library": "Mine",
       "marketplace": "Market"
+    },
+    "importZip": "Import .zip skill",
+    "addMcp": "Add MCP",
+    "mcpSectionTitle": "Connected MCP tools",
+    "mcpSectionHint": "MCP servers are connected inside the sandbox; their tools can be invoked by skills during an encounter.",
+    "mcpToolsCount": "{{count}} tools",
+    "mcpNoTools": "No tools discovered yet — try reconnecting."
+  },
+  "skillImport": {
+    "title": "Import a skill pack (.zip)",
+    "description": "Upload a .zip that contains a SKILL.md; we parse its frontmatter (manifest) and body.",
+    "filePlaceholder": "A .zip containing a SKILL.md",
+    "choose": "Choose a .zip file",
+    "isPublic": "Publish to the skill library",
+    "isPublicHint": "Public skills can be discovered and forked in the skill market.",
+    "submit": "Import & parse",
+    "successTitle": "Imported & selected",
+    "version": "Version",
+    "triggers": "Triggers",
+    "resources": "Packaged files",
+    "preview": "SKILL.md preview",
+    "done": "Done",
+    "noFile": "Choose a .zip file first.",
+    "error": "Import failed — make sure the archive contains a SKILL.md."
+  },
+  "mcp": {
+    "title": "Add an MCP server",
+    "description": "Register an MCP tool server; once connected we discover the tools it exposes.",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Web search",
+    "transportLabel": "Transport",
+    "urlLabel": "Server URL",
+    "urlPlaceholder": "https://… or wss://…",
+    "commandLabel": "Launch command",
+    "commandPlaceholder": "e.g. npx -y @modelcontextprotocol/server-everything",
+    "tokenLabel": "Auth token (optional)",
+    "tokenPlaceholder": "Stored on the backend only; never returned",
+    "categoryLabel": "Category (optional)",
+    "descriptionLabel": "Description (optional)",
+    "isPublic": "Publish to the MCP library",
+    "submit": "Connect & discover tools",
+    "discoveredTitle": "Discovered tools",
+    "noTools": "No tools discovered.",
+    "status": "Status",
+    "done": "Done",
+    "nameError": "Give the MCP server a name.",
+    "targetError": "Provide a server URL or a launch command.",
+    "error": "Could not connect — check the config and try again.",
+    "statusLabel": {
+      "online": "Online",
+      "offline": "Offline",
+      "error": "Error",
+      "unknown": "Unknown"
     }
   }
 }

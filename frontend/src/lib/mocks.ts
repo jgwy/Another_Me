@@ -15,6 +15,7 @@ import type {
   Dispatch,
   DispatchCreate,
   Evolution,
+  ImportSkillOptions,
   InboxListParams,
   MarketplaceCreate,
   MarketplaceForkResult,
@@ -22,6 +23,12 @@ import type {
   MarketplaceLikeResult,
   MarketplacePublishBody,
   MarketplaceVersion,
+  McpConnectResult,
+  McpListParams,
+  McpServer,
+  McpServerCreate,
+  McpServerPatch,
+  McpTool,
   Message,
   Notification,
   Page,
@@ -35,6 +42,7 @@ import type {
   SandboxRunRequest,
   SandboxRunResult,
   Scenario,
+  ScenarioCreate,
   Skill,
   SkillCreate,
   SkillListParams,
@@ -343,6 +351,7 @@ function createStore() {
   const reports: Report[] = clone(MOCK_REPORTS);
   const messages: Record<string, Message[]> = clone(MOCK_MESSAGES);
   const skills: Skill[] = clone(MOCK_SKILLS);
+  const mcpServers: McpServer[] = [];
   const notifications: Notification[] = clone(MOCK_NOTIFICATIONS);
   const relationships: Relationship[] = clone(MOCK_RELATIONSHIPS);
   let points = MOCK_USER.points;
@@ -406,6 +415,48 @@ function createStore() {
     },
     getScenario(idOrKey: string): Scenario | undefined {
       return scenarios.find((s) => s.id === idOrKey || s.key === idOrKey);
+    },
+    /** Fabricate a user-created scenario (mirrors POST /api/scenarios). */
+    createScenario(input: ScenarioCreate): Scenario {
+      const now = nowISO();
+      const slugBase =
+        (input.key || input.name || "scn")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || `scn-${genId().slice(0, 8)}`;
+      let key = slugBase;
+      let n = 2;
+      while (scenarios.some((s) => s.key === key)) key = `${slugBase}-${n++}`;
+
+      const kind = (["business", "empathy", "generic"] as const).includes(
+        input.kind as "business" | "empathy" | "generic",
+      )
+        ? (input.kind as Scenario["kind"])
+        : "generic";
+      const category = input.category ?? (kind === "business" ? "business" : "social");
+      const meta = {
+        building: key,
+        x: Math.round(15 + Math.random() * 70),
+        y: Math.round(15 + Math.random() * 70),
+        category,
+        ...(input.meta ?? {}),
+      } as Scenario["meta"];
+
+      const scenario: Scenario = {
+        id: genId(),
+        key: key as Scenario["key"],
+        name: input.name,
+        description: input.description ?? "",
+        kind,
+        topics: input.topics ?? [],
+        scene_prompt: input.scene_prompt ?? "",
+        ending_prompt: input.ending_prompt ?? "",
+        is_full: true,
+        meta,
+        created_at: now,
+      };
+      scenarios.unshift(scenario);
+      return scenario;
     },
 
     /* conversations + messages */
@@ -717,6 +768,35 @@ function createStore() {
       skills.unshift(skill);
       return skill;
     },
+    /** Fabricate an imported skill from a `.zip` file name (mirrors
+     *  POST /api/skills/import). The mock can't unzip, so it synthesizes a
+     *  plausible SKILL.md/manifest preview from the file name. */
+    importSkill(file: { name: string }, opts?: ImportSkillOptions): Skill {
+      const now = nowISO();
+      const base = (file.name || "imported-skill").replace(/\.zip$/i, "") || "imported-skill";
+      const body = `# ${base}\n\n（演示）这是从 .zip 包导入的 SKILL.md 占位内容。`;
+      const skill: Skill = {
+        id: genId(),
+        agent_id: opts?.agent_id ?? null,
+        owner_id: MOCK_USER.id,
+        name: base,
+        description: `从 ${file.name} 导入的技能包`,
+        prompt_body: body,
+        content: body,
+        skill_md: `---\nname: ${base}\nversion: 0.1.0\n---\n\n${body}`,
+        manifest: { name: base, version: "0.1.0", description: `从 ${file.name} 导入`, triggers: [] },
+        resources: [{ path: "SKILL.md", kind: "doc" }],
+        params: [],
+        tags: ["imported"],
+        executable: { kind: "none" },
+        source: "upload",
+        is_public: opts?.is_public ?? false,
+        created_at: now,
+        updated_at: now,
+      };
+      skills.unshift(skill);
+      return skill;
+    },
     patchSkill(id: string, body: SkillPatch): Skill | undefined {
       const s = skills.find((x) => x.id === id);
       if (!s) return undefined;
@@ -736,6 +816,77 @@ function createStore() {
     deleteSkill(id: string): void {
       const i = skills.findIndex((s) => s.id === id);
       if (i >= 0) skills.splice(i, 1);
+    },
+
+    /* mcp servers (sandbox-connected tool servers) */
+    listMcps(params?: McpListParams): Page<McpServer> {
+      let items = mcpServers;
+      if (params?.agent_id) items = items.filter((m) => m.agent_id === params.agent_id);
+      if (params?.category) items = items.filter((m) => m.category === params.category);
+      if (params?.is_public !== undefined)
+        items = items.filter((m) => m.is_public === params.is_public);
+      if (params?.owner && params.owner !== "me")
+        items = items.filter((m) => m.owner_id === params.owner);
+      if (params?.q) {
+        const q = params.q.toLowerCase();
+        items = items.filter(
+          (m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q),
+        );
+      }
+      return paginate(items, params?.limit, params?.offset);
+    },
+    getMcp(id: string): McpServer | undefined {
+      return mcpServers.find((m) => m.id === id);
+    },
+    createMcp(body: McpServerCreate): McpServer {
+      const now = nowISO();
+      const server: McpServer = {
+        id: genId(),
+        owner_id: MOCK_USER.id,
+        agent_id: body.agent_id ?? null,
+        name: body.name,
+        description: body.description ?? "",
+        category: body.category ?? "general",
+        transport: body.transport ?? "sse",
+        command: body.command ?? null,
+        url: body.url ?? null,
+        // The token is write-only; the mock never echoes it back.
+        config: body.config ?? null,
+        status: "unknown",
+        tools: null,
+        is_public: body.is_public ?? false,
+        last_checked_at: null,
+        created_at: now,
+        updated_at: now,
+      };
+      mcpServers.unshift(server);
+      return server;
+    },
+    patchMcp(id: string, body: McpServerPatch): McpServer | undefined {
+      const m = mcpServers.find((x) => x.id === id);
+      if (!m) return undefined;
+      const { token: _token, ...rest } = body;
+      Object.assign(m, rest, { updated_at: nowISO() });
+      return m;
+    },
+    deleteMcp(id: string): void {
+      const i = mcpServers.findIndex((m) => m.id === id);
+      if (i >= 0) mcpServers.splice(i, 1);
+    },
+    /** Fabricate a connect probe (mirrors POST /api/mcps/{id}/connect). */
+    connectMcp(id: string): McpConnectResult {
+      const server = mcpServers.find((m) => m.id === id);
+      const tools: McpTool[] = [
+        { name: "search", description: "演示工具：检索信息" },
+        { name: "fetch", description: "演示工具：抓取网页内容" },
+        { name: "summarize", description: "演示工具：摘要长文本" },
+      ];
+      if (server) {
+        server.status = "online";
+        server.tools = tools;
+        server.last_checked_at = nowISO();
+      }
+      return { id, status: "online", tools, error: null };
     },
 
     /* inbox / notifications */

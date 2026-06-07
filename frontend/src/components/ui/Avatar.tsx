@@ -16,8 +16,8 @@ const palette = [
   "from-accent/30 to-accent/[0.06] text-accent ring-accent/40",
   "from-warning/30 to-warning/[0.06] text-warning ring-warning/40",
   "from-danger/30 to-danger/[0.06] text-danger ring-danger/40",
-  "from-sky-400/30 to-sky-400/[0.06] text-sky-300 ring-sky-400/40",
-  "from-fuchsia-400/30 to-fuchsia-400/[0.06] text-fuchsia-300 ring-fuchsia-400/40",
+  "from-sky-400/30 to-sky-400/[0.06] text-sky-700 ring-sky-400/40",
+  "from-rose-400/30 to-rose-400/[0.06] text-rose-700 ring-rose-400/40",
 ];
 
 export interface AvatarProps {

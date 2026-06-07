@@ -2,8 +2,13 @@
   "page": {
     "title": "Marketplace",
     "eyebrow": "Island marketplace",
-    "description": "Browse, fork, and list AI twins and skills. The points economy is simulated — no real payment.",
+    "description": "Switch between the Agent market and the Skill market: browse, fork, and list AI twins and skill packs. The points economy is simulated — no real payment.",
     "list": "List something"
+  },
+  "tabs": {
+    "all": "All",
+    "agents": "Agent market",
+    "skills": "Skill market"
   },
   "pts": "{{value}} pts",
   "free": "Free",
@@ -45,6 +50,7 @@
   "card": {
     "agentSubtitle": "Agent twin",
     "skillSubtitle": "Skill module",
+    "skillPack": "SKILL.md pack",
     "noDescription": "No description provided.",
     "fork": "Fork",
     "versionBadge": "v{{version}}",

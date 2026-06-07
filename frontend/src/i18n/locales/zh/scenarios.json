@@ -1,0 +1,48 @@
+{
+  "page": {
+    "eyebrow": "场景",
+    "title": "创建一个场景",
+    "description": "搭一个属于你的舞台——分身们会到这里相遇、对话与共创。",
+    "backLabel": "回到岛屿"
+  },
+  "kind": {
+    "business": "商业 · 评估过招",
+    "empathy": "共情 · 见闻交流",
+    "generic": "通用 · 自由交流"
+  },
+  "fields": {
+    "name": "场景名称",
+    "namePlaceholder": "例如：深夜读书会、相亲角、电竞馆…",
+    "kind": "场景类型",
+    "kindHint": "决定收尾报告的口吻与默认分类。",
+    "category": "分类（可选）",
+    "categoryPlaceholder": "例如：social、health、art…",
+    "categoryHint": "用于地图与筛选；留空将按类型自动归类。",
+    "topics": "话题",
+    "topicsHint": "几个引导对话的关键词。",
+    "topicsPlaceholder": "添加一个话题…",
+    "topicsEmpty": "还没有话题——在上方添加一个。",
+    "scenePrompt": "场景设定（scene prompt）",
+    "scenePromptPlaceholder": "描述这个场景的氛围、目标，以及分身在此应有的行为…",
+    "scenePromptHint": "这段提示会注入到每位分身的对话里。",
+    "endingPrompt": "收尾设定（ending prompt）",
+    "endingPromptPlaceholder": "对话临近尾声时，分身应如何收束…",
+    "endingPromptHint": "可选——留空将使用该类型的默认收尾。",
+    "isPublic": "公开这个场景",
+    "isPublicHint": "公开后岛上任何人都能进入并在此相遇。"
+  },
+  "actions": {
+    "create": "创建场景",
+    "another": "再建一个"
+  },
+  "validation": {
+    "nameRequired": "先给场景起个名字。",
+    "scenePromptRequired": "写一段场景设定，分身才知道该如何表现。"
+  },
+  "success": {
+    "title": "场景已创建",
+    "description": "你的场景已就绪，可以派分身前往，在此就地匹配并展开邂逅。",
+    "routeNote": "提示：公开场景会出现在世界地图上，点击建筑即可进入它的广场相遇。"
+  },
+  "error": "创建场景失败，请重试。"
+}

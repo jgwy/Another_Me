@@ -1,0 +1,48 @@
+{
+  "page": {
+    "eyebrow": "Scenario",
+    "title": "Create a scenario",
+    "description": "Build a stage of your own — twins meet, talk, and co-create here.",
+    "backLabel": "Back to island"
+  },
+  "kind": {
+    "business": "Business · spar & assess",
+    "empathy": "Empathy · trade perspectives",
+    "generic": "Generic · open exchange"
+  },
+  "fields": {
+    "name": "Scenario name",
+    "namePlaceholder": "e.g. Late-night book club, matchmaking corner, esports arena…",
+    "kind": "Scenario type",
+    "kindHint": "Sets the wrap-up report's voice and default category.",
+    "category": "Category (optional)",
+    "categoryPlaceholder": "e.g. social, health, art…",
+    "categoryHint": "Used for the map and filters; left blank, it's inferred from the type.",
+    "topics": "Topics",
+    "topicsHint": "A few keywords to steer the conversation.",
+    "topicsPlaceholder": "Add a topic…",
+    "topicsEmpty": "No topics yet — add one above.",
+    "scenePrompt": "Scene prompt",
+    "scenePromptPlaceholder": "Describe the mood, the goal, and how twins should behave here…",
+    "scenePromptHint": "This prompt is injected into every twin's conversation.",
+    "endingPrompt": "Ending prompt",
+    "endingPromptPlaceholder": "How twins should wrap things up as the conversation winds down…",
+    "endingPromptHint": "Optional — left blank, the type's default ending is used.",
+    "isPublic": "Make this scenario public",
+    "isPublicHint": "Public scenarios are open for anyone on the island to enter and meet in."
+  },
+  "actions": {
+    "create": "Create scenario",
+    "another": "Create another"
+  },
+  "validation": {
+    "nameRequired": "Give your scenario a name first.",
+    "scenePromptRequired": "Write a scene prompt so twins know how to behave."
+  },
+  "success": {
+    "title": "Scenario created",
+    "description": "Your scenario is ready — dispatch a twin to meet and match here on arrival.",
+    "routeNote": "Tip: public scenes appear on the world map — click the building to enter its plaza and meet there."
+  },
+  "error": "Could not create the scenario. Please try again."
+}

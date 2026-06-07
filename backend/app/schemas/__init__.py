@@ -25,12 +25,25 @@ from app.schemas.marketplace import (
     MarketplaceVersion,
     PointsResponse,
 )
+from app.schemas.mcp import (
+    McpConnectResponse,
+    McpServer,
+    McpServerCreate,
+    McpServerPatch,
+)
 from app.schemas.message import Message
+from app.schemas.presence import (
+    PresenceEnterRequest,
+    PresenceEntry,
+    PresenceLeaveRequest,
+    PresenceLeaveResponse,
+    PresenceSnapshot,
+)
 from app.schemas.prompt_config import PromptConfig
 from app.schemas.relationship import Relationship, RelationshipGraph, RelationshipNode
 from app.schemas.report import Report
 from app.schemas.sandbox import SandboxRun, SandboxRunRequest, SandboxRunResult
-from app.schemas.scenario import Scenario
+from app.schemas.scenario import Scenario, ScenarioCreate
 from app.schemas.skill import Skill, SkillCreate, SkillExecutable, SkillParam, SkillPatch
 from app.schemas.trip import Trip, TripCreate, TripEncounter, TripPlan, TripStop
 from app.schemas.user import User
@@ -56,6 +69,16 @@ __all__ = [
     "SkillParam",
     "SkillExecutable",
     "Scenario",
+    "ScenarioCreate",
+    "McpServer",
+    "McpServerCreate",
+    "McpServerPatch",
+    "McpConnectResponse",
+    "PresenceEntry",
+    "PresenceSnapshot",
+    "PresenceEnterRequest",
+    "PresenceLeaveRequest",
+    "PresenceLeaveResponse",
     "Dispatch",
     "DispatchCreate",
     "Conversation",
