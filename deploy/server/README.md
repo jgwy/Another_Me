@@ -1,13 +1,37 @@
 # 自托管服务器部署（腾讯云 EdgeOne · HTTP 回源）
 
-把前端 + 后端合并到单个 HTTP 端口（compose 的 `gateway` 服务，默认 `:80`），
-让 EdgeOne 以 **HTTP 回源** 指向本机。TLS 在 EdgeOne 边缘终结，源站只跑 HTTP。
+把前端 + 后端合并到 compose 的 `gateway`(nginx) 单端口，让 EdgeOne 以 **HTTP 回源**
+访问。TLS 在 EdgeOne 边缘终结，源站只跑 HTTP。
+
+根据这台机器是否已有别的 nginx，选一种拓扑：
+
+## 拓扑 A：机器已有宿主 nginx（推荐，避免端口串台）
+
+宿主 nginx 继续占 `:80` 当唯一入口，`gateway` 只监听 `127.0.0.1:8080`，由宿主
+nginx 的站点 vhost 反代进去，与其它站点互不影响。
 
 ```
-浏览器 ──HTTPS──▶ EdgeOne 边缘 ──HTTP 回源(:80)──▶ 服务器 gateway(nginx)
-                  缓存静态/透传动态                ├─ /      → frontend:4173
-                                                   └─ /api/  → backend:8000 (含 SSE)
+浏览器 ─HTTPS─▶ EdgeOne ─HTTP回源(:80)─▶ 宿主 nginx(vhost) ─▶ 127.0.0.1:8080 gateway
+                                                              ├─ /     → frontend:4173
+                                                              └─ /api/ → backend:8000 (SSE)
 ```
+
+- `.env` 保持默认：`GATEWAY_BIND=127.0.0.1`、`GATEWAY_PORT=8080`。
+- 把 `host-nginx-vhost.conf` 内容加到宿主 nginx（如 `/etc/nginx/conf.d/another-me.conf`），
+  改好 `server_name`，`nginx -t && systemctl reload nginx`。
+- **EdgeOne 回源地址不变**（仍指向宿主 nginx 的 `:80`）。
+- 关键：vhost 里 `/api` 也要 `proxy_buffering off`（SSE 又一跳），文件里已写好。
+
+## 拓扑 B：机器上没有其它 nginx
+
+让 `gateway` 直接占公网 `:80`，EdgeOne 回源指向本机 `:80`。
+
+```
+浏览器 ─HTTPS─▶ EdgeOne ─HTTP回源(:80)─▶ gateway(nginx) ├─ / → frontend:4173
+                                                         └─ /api/ → backend:8000 (SSE)
+```
+
+- `.env` 改为：`GATEWAY_BIND=0.0.0.0`、`GATEWAY_PORT=80`。
 
 ## 一、服务器上启动
 
@@ -21,20 +45,22 @@ cp .env.example .env
 # 2) 构建并启动
 docker compose up -d --build
 
-# 3) 自检（源站本机）
-curl -i http://localhost/health        # 期望 200
-curl -i http://localhost/              # 期望 200，返回前端 index.html
+# 3) 自检（在源站本机，端口用你的 GATEWAY_PORT）
+curl -i http://127.0.0.1:8080/health   # 期望 200（拓扑 A 默认 8080）
+curl -i http://127.0.0.1:8080/         # 期望 200，返回前端 index.html
+# 拓扑 A 还要确认走宿主 nginx 的入口（带域名 Host）：
+curl -i -H 'Host: your-domain.com' http://127.0.0.1/health
 ```
 
-仅 `gateway` 的端口对公网开放；`db(5432)`、`backend(8000)` 只绑定 `127.0.0.1`，
-`frontend`、`sandbox-runner` 无对外端口。安全组/防火墙放行 `GATEWAY_PORT`（80）即可。
+`db(5432)`、`backend(8000)`、`gateway` 均只绑 `127.0.0.1`，`frontend`、`sandbox-runner`
+无对外端口。公网只由宿主 nginx 的 `:80` 暴露（拓扑 A），或由 `gateway` 的 `:80`（拓扑 B）。
 
 ## 二、EdgeOne 配置要点
 
 1. **添加站点 / 域名**，回源配置：
    - 回源协议：**HTTP**
-   - 源站地址：服务器公网 IP（或内网，视部署而定）
-   - 回源端口：**80**（与 `GATEWAY_PORT` 一致）
+   - 源站地址：服务器公网 IP
+   - 回源端口：**80**（拓扑 A 指向宿主 nginx；拓扑 B 指向 `gateway`）
 2. **HTTPS**：在 EdgeOne 侧申请/上传证书，对外开启 HTTPS（边缘终结）。
 3. **SSE 透传（关键，否则观战流不逐条推送）**——对路径 `/api/*` 配置：
    - 关闭缓存（缓存 → 不缓存 / Cache Bypass）。
@@ -50,5 +76,6 @@ git pull
 docker compose up -d --build   # 前端镜像启动时会重新 vite build（读取 .env 的 VITE_API_BASE_URL）
 ```
 
-> 仅本机直连（不经 EdgeOne）调试时，浏览器访问 `http://<服务器IP>:<GATEWAY_PORT>` 即可，
-> 同源 `/api` 同样生效，无需任何额外配置。
+> 拓扑 A 下若 EdgeOne 回源后页面串台/错乱，多半是宿主 nginx 没有为本域名配 vhost、
+> 被 `default_server` 或别的站点抢走了。确保 `host-nginx-vhost.conf` 的 `server_name`
+> 精确匹配 EdgeOne 回源 Host，并 `nginx -t && systemctl reload nginx`。

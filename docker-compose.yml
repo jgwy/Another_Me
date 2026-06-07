@@ -110,9 +110,12 @@ services:
       retries: 12
       start_period: 60s
 
-  # Single public entrypoint. Consolidates frontend (/) + backend (/api) onto
-  # one HTTP port so EdgeOne can do plain HTTP origin-pull to this host. TLS is
-  # terminated at the EdgeOne edge; the origin stays HTTP-only.
+  # App entrypoint. Consolidates frontend (/) + backend (/api, incl. SSE) onto
+  # one HTTP port. Bound to LOOPBACK ONLY (127.0.0.1) on a high port so it can
+  # coexist with an existing host nginx on :80 — the host nginx owns the public
+  # port and reverse-proxies the site's vhost to this gateway. EdgeOne does HTTP
+  # origin-pull to the host nginx (TLS terminated at the edge / host).
+  # If this host has NO other nginx, set GATEWAY_PORT=80 and point EdgeOne here.
   gateway:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -122,7 +125,7 @@ services:
       frontend:
         condition: service_healthy
     ports:
-      - "${GATEWAY_PORT:-80}:80"
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-8080}:80"
     volumes:
       - ./deploy/server/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
