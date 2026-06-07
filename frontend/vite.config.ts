@@ -12,5 +12,8 @@ export default defineConfig({
   preview: {
     host: true,
     port: 4173,
+    // Behind the compose `gateway` (and EdgeOne) the Host header is the public
+    // domain, not localhost; allow it so the preview server doesn't 403.
+    allowedHosts: true,
   },
 });

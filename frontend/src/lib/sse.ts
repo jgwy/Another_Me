@@ -82,7 +82,7 @@ export function openConversationStream(
   conversationId: string,
   handlers: ConversationStreamHandlers = {},
 ): ConversationStream {
-  const url = new URL(`${API_BASE_URL}/api/conversations/${conversationId}/stream`);
+  const url = new URL(`${API_BASE_URL}/api/conversations/${conversationId}/stream`, window.location.origin);
   if (handlers.token) {
     url.searchParams.set("token", handlers.token);
   }
@@ -204,7 +204,7 @@ export interface TripStream {
  * Unknown events + `ping` keepalives are ignored.
  */
 export function openTripStream(tripId: string, handlers: TripStreamHandlers = {}): TripStream {
-  const url = new URL(`${API_BASE_URL}/api/trips/${tripId}/stream`);
+  const url = new URL(`${API_BASE_URL}/api/trips/${tripId}/stream`, window.location.origin);
   if (handlers.token) {
     url.searchParams.set("token", handlers.token);
   }

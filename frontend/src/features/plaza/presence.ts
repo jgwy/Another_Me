@@ -176,7 +176,7 @@ export function getScenarioPresence(scenarioId: string): Promise<PresenceSnapsho
 
 /** Open the read-only presence SSE stream for a plaza (contract §4.3). */
 export function openScenarioStream(scenarioId: string, handlers: PresenceStreamHandlers = {}): PresenceStream {
-  const url = new URL(`${API_BASE_URL}/api/scenarios/${scenarioId}/stream`);
+  const url = new URL(`${API_BASE_URL}/api/scenarios/${scenarioId}/stream`, window.location.origin);
   if (handlers.token) url.searchParams.set("token", handlers.token);
 
   const source = new EventSource(url.toString());

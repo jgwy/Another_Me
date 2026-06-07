@@ -15,7 +15,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-another_me}
       POSTGRES_DB: ${POSTGRES_DB:-another_me}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Bind to loopback only — never expose Postgres on the public interface.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       # Postgres 18+ stores data in a major-version subdir; mount the parent dir
       # (NOT /var/lib/postgresql/data) per the official image guidance.
@@ -69,7 +70,9 @@ services:
       # CORS
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      # Reached by the browser through the `gateway` (/api), not directly.
+      # Bind to loopback only for host-side debugging; not public.
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     networks:
       - appnet
       - sandbox_net
@@ -90,21 +93,46 @@ services:
       backend:
         condition: service_healthy
     environment:
-      # The browser reaches the backend via the host-published port, so this is
-      # a host URL (NOT the in-network http://backend:8000).
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
-    ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      # Empty => the built app calls the API same-origin (/api), so it works
+      # behind the `gateway` reverse proxy and EdgeOne with no CORS / no
+      # mixed-content. For standalone local dev (no gateway) set this to the
+      # backend host URL, e.g. http://localhost:8000.
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    # No public port: the browser reaches the frontend through `gateway` (/).
     networks:
       - appnet
     healthcheck:
       test:
         - "CMD-SHELL"
-        - "node -e \"fetch('http://localhost:5173').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        - "node -e \"fetch('http://localhost:4173').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 30s
+      start_period: 60s
+
+  # Single public entrypoint. Consolidates frontend (/) + backend (/api) onto
+  # one HTTP port so EdgeOne can do plain HTTP origin-pull to this host. TLS is
+  # terminated at the EdgeOne edge; the origin stays HTTP-only.
+  gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_PORT:-80}:80"
+    volumes:
+      - ./deploy/server/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   sandbox-runner:
     build:
